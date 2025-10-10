@@ -231,7 +231,6 @@ export default function Page() {
         {/* This whole section was added after user feedback - people were confused */}
         <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-6 space-y-4">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-white mb-2">Welcome to Ethereum Transaction Visualizer</h2>
             <p className="text-blue-300 text-sm">An educational tool to understand how cryptocurrency transactions really work</p>
           </div>
 
