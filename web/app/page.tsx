@@ -3,7 +3,7 @@
 // Shows how transactions go from mempool → MEV auction → block proposal → finality.
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import GlowButton from "./components/GlowButton";
 import Panel from "./components/Panel";
 import CaptureButton from "./components/CaptureButton";
@@ -38,6 +38,7 @@ export default function Page() {
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackDetailsHidden, setTrackDetailsHidden] = useState(false);
   const [error, setError] = useState<ErrState>(null);
+  const [backendReady, setBackendReady] = useState<boolean | null>(null); // null = checking, true = ready, false = not ready
 
   // Client-side throttle for snapshot endpoint to avoid hammering the API
   // Users were clicking buttons too fast and overwhelming our poor Go server
@@ -61,6 +62,21 @@ export default function Page() {
     [activePanel]
   );
 
+
+  // checkBackendHealth verifies that the Go API backend is ready to serve requests
+  // This prevents the frontend from making API calls when the backend is still starting up
+  async function checkBackendHealth() {
+    try {
+      const r = await fetch('/api/health/ready');
+      const isReady = r.ok && (await r.text()) === 'READY';
+      setBackendReady(isReady);
+      return isReady;
+    } catch (error) {
+      console.warn('Backend health check failed:', error);
+      setBackendReady(false);
+      return false;
+    }
+  }
 
   // safeFetch wraps fetch with error handling and user-friendly messages
   // All our API calls go through this to provide consistent error UX
@@ -123,11 +139,38 @@ export default function Page() {
     }
   }
 
+  // Check backend health on component mount
+  useEffect(() => {
+    checkBackendHealth();
+  }, []);
+
   // loadSnapshot fetches a batch of data from the /api/snapshot endpoint.
   // This is more efficient than hitting each endpoint individually since
   // the Go server can parallelize the upstream calls and cache the result.
   // Originally we were making 5+ separate API calls - this is much better
   async function loadSnapshot(includeSandwich = false, block?: string) {
+    // Check if backend is ready before making API calls
+    if (backendReady === false) {
+      setError({ 
+        title: "Backend not ready", 
+        message: "The API server is still starting up. Please wait a moment and try again.",
+        hint: "This usually takes 10-30 seconds on first startup."
+      });
+      return;
+    }
+
+    // If we haven't checked health yet, do it now
+    if (backendReady === null) {
+      const isReady = await checkBackendHealth();
+      if (!isReady) {
+        setError({ 
+          title: "Backend not ready", 
+          message: "The API server is still starting up. Please wait a moment and try again.",
+          hint: "This usually takes 10-30 seconds on first startup."
+        });
+        return;
+      }
+    }
     // Throttle to avoid spamming the API when user clicks buttons rapidly
     // Users were clicking like crazy and our server was crying
     const now = Date.now();
@@ -260,6 +303,32 @@ export default function Page() {
             </div>
           </div>
         </div>
+
+        {/* Backend Status Indicator */}
+        {backendReady !== null && (
+          <div className={`rounded-lg p-3 border ${
+            backendReady 
+              ? 'bg-green-500/10 border-green-500/30 text-green-300' 
+              : 'bg-red-500/10 border-red-500/30 text-red-300'
+          }`}>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${
+                backendReady ? 'bg-green-400' : 'bg-red-400'
+              }`} />
+              <span className="text-sm font-medium">
+                {backendReady ? 'API Server Ready' : 'API Server Not Ready'}
+              </span>
+              {!backendReady && (
+                <button 
+                  onClick={checkBackendHealth}
+                  className="ml-auto text-xs underline hover:no-underline"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Global error display - shows at the top when something goes wrong */}

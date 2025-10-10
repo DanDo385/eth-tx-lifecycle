@@ -1,4 +1,4 @@
-# Ethereum Transaction Visualizer
+# ethEdu - Ethereum Transaction Visualizer
 
 **An educational tool for understanding how Ethereum really works** - from your first "send" click to permanent blockchain finality.
 
@@ -47,8 +47,8 @@ Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows 
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/eth-step-by-step
-   cd eth-step-by-step
+   git clone https://github.com/yourusername/ethEdu
+   cd ethEdu
    ```
 
 2. **Install dependencies**:
@@ -177,7 +177,7 @@ Click **"6) Sandwich detector"** and enter "latest" or a specific block number t
 ## 📂 Project Structure
 
 ```
-eth-step-by-step/
+ethEdu/
 ├── go-api/                          # Go backend service
 │   ├── main.go                      # HTTP routes & request handlers
 │   ├── eth_rpc.go                   # Ethereum JSON-RPC client
@@ -256,6 +256,32 @@ ERROR_CACHE_TTL_SECONDS=10
 ```
 
 **Note**: The default public endpoints work fine for learning! You only need to change these if you want to use your own API keys or local nodes.
+
+## 🚀 Deployment
+
+### Deploy to Vercel + Railway
+
+1. **Deploy Go API to Railway:**
+   ```bash
+   # In the go-api directory
+   railway login
+   railway init
+   railway up
+   ```
+
+2. **Deploy Frontend to Vercel:**
+   ```bash
+   # In the web directory
+   vercel login
+   vercel --prod
+   ```
+
+3. **Configure Environment Variables:**
+   - In Vercel dashboard, go to your project settings
+   - Add environment variable: `GOAPI_ORIGIN=https://your-railway-app.up.railway.app`
+   - Redeploy the frontend
+
+The `vercel.json` file is already configured with the Railway URL for automatic deployment.
 
 ## 🎓 Educational Value
 

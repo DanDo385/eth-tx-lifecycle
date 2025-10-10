@@ -1,5 +1,5 @@
 {
-  "name": "eth-edu",
+  "name": "ethEdu",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",

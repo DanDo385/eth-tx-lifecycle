@@ -1,4 +1,4 @@
-module github.com/you/eth-edu-goapi
+module github.com/you/ethEdu-goapi
 
 go 1.22
 
