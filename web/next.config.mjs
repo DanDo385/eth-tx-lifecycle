@@ -7,17 +7,19 @@ const nextConfig = {
 
   // proxy frontend /api/* to your Go API backend
   async rewrites() {
+    const goApiOrigin = process.env.GOAPI_ORIGIN || 'http://localhost:8080';
+    console.log('Next.js rewrites: GOAPI_ORIGIN =', goApiOrigin);
+    
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.GOAPI_ORIGIN || 'http://localhost:8080'}/api/:path*`,
+        destination: `${goApiOrigin}/api/:path*`,
       },
     ];
   },
 
-  // keep your dev-only CSP headers
+  // CSP headers for both development and production
   async headers() {
-    if (process.env.NODE_ENV === 'production') return [];
     return [
       {
         source: '/:path*',
