@@ -27,12 +27,16 @@ export default function TransactionView({ data }: TransactionViewProps) {
       <div className="border-l-4 border-blue-500 pl-4">
         <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
           📊 Transaction Overview
-          {decoded?.action_type && (
+          {decoded?.action_type ? (
             <span className="ml-2 px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded">
               {(decoded.action_type === 'contract_call' ? 'CONTRACT CALL'
                 : decoded.action_type === 'transferFrom' ? 'TRANSFER FROM'
                 : decoded.action_type === 'handleOps' ? 'ACCOUNT ABSTRACTION'
                 : decoded.action_type.toUpperCase())}
+            </span>
+          ) : (
+            <span className="ml-2 px-2 py-0.5 bg-gray-500/20 text-gray-300 text-xs rounded">
+              UNKNOWN
             </span>
           )}
         </h3>

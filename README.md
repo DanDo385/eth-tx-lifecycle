@@ -4,7 +4,7 @@
 
 Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows real-time data from the Ethereum network with detailed explanations, analogies, and interactive learning tools.
 
-## 🎯 What You'll Learn
+## What You'll Learn
 
 - **How cryptocurrency transactions work** - Complete journey from mempool to finality
 - **Gas fees explained** - Base fees vs priority fees (tips), and where your money goes
@@ -13,64 +13,63 @@ Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows 
 - **Blockchain security** - How Ethereum makes transactions irreversible
 - **Real MEV attacks** - Actual sandwich attacks happening on the network right now
 
-## ✨ Features
+## Features
 
 ### For Complete Beginners
-- **📚 Interactive Glossary** - 40+ terms organized by category with hover definitions
-- **🎯 Step-by-Step Guide** - Numbered walkthrough explaining each panel
-- **🏢 Real-World Analogies** - Post office metaphors, concert ticket scalpers, bank comparisons
-- **💡 Educational Tooltips** - Detailed explanations throughout with "why this matters" sections
-- **📊 Visual Metrics** - User-friendly cards showing gas prices, transaction counts, validator earnings
+- **Interactive Glossary** - 40+ terms organized by category with hover definitions
+- **Step-by-Step Guide** - Numbered walkthrough explaining each panel
+- **Real-World Analogies** - Post office metaphors, concert ticket scalpers, bank comparisons
+- **Educational Tooltips** - Detailed explanations throughout with "why this matters" sections
+- **Visual Metrics** - User-friendly cards showing gas prices, transaction counts, validator earnings
 
 ### Advanced Features
 - **Real-Time Data** - Live transactions, blocks, and validator data from Ethereum mainnet
-- **Transaction Tracking** - Follow any transaction hash through its complete lifecycle
-- **MEV Detection** - Scan blocks for sandwich attacks using Uniswap heuristics
+- **Transaction Tracking** - Follow any transaction hash (or enter "latest") through its complete lifecycle
+- **Smart Transaction Decoding** - Identifies swaps, transfers, approvals, mints, claims, and contract calls using receipt analysis
+- **MEV Detection** - Scan blocks for sandwich attacks using Uniswap V2/V3 heuristics with parallel receipt fetching
 - **Builder Competition** - See multiple builders bidding for the same block slot
 - **Finality Monitoring** - Watch Casper-FFG checkpoints in action
 
 ### Technical
 - **No Local Node Required** - Uses public APIs (Alchemy, Beaconcha.in, Flashbots)
+- **Parallel Data Fetching** - Goroutines with bounded worker pools for fast API responses
+- **Generic TTL Cache** - Shared cache implementation across all data sources
 - **Responsive Design** - Works on desktop, tablet, mobile
 - **Dark Theme** - Easy on the eyes for extended learning sessions
-- **Data Caching** - Smart caching reduces API calls and improves performance
+- **Health Monitoring** - Liveness and readiness probes for all data sources
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- **Go 1.21+** (for the API server) - [Download Go](https://go.dev/dl/)
+- **Go 1.22+** (for the API server) - [Download Go](https://go.dev/dl/)
 - **Node.js 18+** (for the frontend) - [Download Node.js](https://nodejs.org/)
-- **5 minutes** of your time!
 
 ### Installation
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/eth-tx-lifecycle
+   git clone https://github.com/DanDo385/eth-tx-lifecycle.git
    cd eth-tx-lifecycle
    ```
 
 2. **Install dependencies**:
    ```bash
    # Install Go dependencies (backend)
-   cd backend
-   go mod tidy
-   cd ..
+   cd backend && go mod tidy && cd ..
 
    # Install Node.js dependencies (frontend)
-   cd frontend
-   npm install
-   cd ..
+   cd frontend && npm install && cd ..
    ```
 
-3. **Start both servers** (in separate terminals):
+3. **Start both servers**:
    ```bash
-   # Terminal 1: Start backend server (port 8080)
-   ./scripts/start-backend.sh
+   # Option A: Use Make (recommended) - starts backend in background, frontend in foreground
+   make start
 
-   # Terminal 2: Start Next.js frontend (port 3000)
-   ./scripts/start-frontend.sh
+   # Option B: Use scripts in separate terminals
+   ./scripts/start-backend.sh   # Terminal 1 (port 8080)
+   ./scripts/start-frontend.sh  # Terminal 2 (port 3000)
    ```
 
 4. **Open your browser**:
@@ -78,9 +77,14 @@ Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows 
    http://localhost:3000
    ```
 
-That's it! You're now connected to live Ethereum data. 🎉
+### Stopping Services
 
-## 📖 How to Use (Beginner's Guide)
+```bash
+make stop       # Stop both services and free ports
+make status     # Check if services are running
+```
+
+## How to Use (Beginner's Guide)
 
 ### Step 1: Start with the Mempool
 Click **"1) Mempool"** to see real transactions waiting to be processed. This is like watching mail waiting to be sorted at the post office.
@@ -94,7 +98,7 @@ Click **"1) Mempool"** to see real transactions waiting to be processed. This is
 **Key insight**: Gas prices change constantly based on network demand. Higher prices = more competition for block space!
 
 ### Step 2-3: See the MEV Competition
-Click **"2) Builders → Relays"** to see professional block builders competing, then **"3) Relays → Validators"** to see which blocks won.
+Click **"2) Builders -> Relays"** to see professional block builders competing, then **"3) Relays -> Validators"** to see which blocks won.
 
 **What you'll see:**
 - Multiple builders creating different blocks for the same 12-second slot
@@ -103,6 +107,16 @@ Click **"2) Builders → Relays"** to see professional block builders competing,
 - Builder payments to validators (MEV profit sharing)
 
 **Key insight**: The total transaction count is inflated because the same transactions appear in multiple competing blocks!
+
+### Step 3: Track a Transaction
+Enter any transaction hash or type **"latest"** to follow a real transaction through its lifecycle.
+
+**What you'll see:**
+- Transaction type detection (swap, transfer, approval, contract call, etc.)
+- Gas economics breakdown
+- Block inclusion details with neighboring transactions
+- MEV relay data (builder/proposer info)
+- Finality status from beacon chain checkpoints
 
 ### Step 4: Explore Proposed Blocks
 Click **"4) Proposed blocks + Builder payments"** to see actual blocks that made it on-chain.
@@ -113,142 +127,163 @@ Click **"4) Proposed blocks + Builder payments"** to see actual blocks that made
 - Block fullness and gas utilization
 - Which builders dominate the market
 
-**Key insight**: Most validators use MEV-Boost because it significantly increases their income!
-
 ### Step 5: Understand Finality
 Click **"5) Finality checkpoints"** to see how transactions become permanent and irreversible.
 
 **What you'll see:**
-- Justification → Finalization process (2-step security)
+- Justification -> Finalization process (2-step security)
 - Current network health status
 - Economic security ($30+ billion to reverse finalized blocks)
-- Why exchanges wait ~15 minutes for large deposits
-
-**Key insight**: After finality, your transaction is as secure as Bitcoin's 6-block confirmation!
 
 ### Step 6: Detect MEV Attacks
 Click **"6) Sandwich detector"** and enter "latest" or a specific block number to scan for attacks.
 
 **What you'll see:**
 - Real sandwich attacks where traders lost money
-- Front-run → Victim → Back-run transaction sequences
+- Front-run -> Victim -> Back-run transaction sequences
 - Attacker addresses and victim addresses
-- Impact on victims (worse execution prices)
 
-**Key insight**: About 5-10% of blocks contain detectable sandwich attacks. Real money is being extracted!
-
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  Browser (localhost:3000)                │
-│                                                          │
-│  Next.js Frontend with Educational Components           │
-│  - Interactive Glossary (40+ terms)                     │
-│  - Step-by-step Walkthrough                            │
-│  - User-friendly Metric Cards                          │
-│  - Real-world Analogies                                │
-└──────────────────────┬──────────────────────────────────┘
-                       │ API Calls
-                       ▼
-┌─────────────────────────────────────────────────────────┐
-│              Backend Server (localhost:8080)             │
-│                                                          │
-│  - Mempool Monitoring (WebSocket + HTTP polling)        │
-│  - Transaction Tracking                                 │
-│  - MEV Detection                                        │
-│  - Data Aggregation & Caching                          │
-└───┬─────────────┬─────────────┬──────────────┬─────────┘
-    │             │             │              │
-    ▼             ▼             ▼              ▼
-┌─────────┐ ┌──────────┐ ┌───────────┐ ┌──────────────┐
-│ Alchemy │ │Beaconcha │ │ Flashbots │ │ Other Relays │
-│   RPC   │ │   .in    │ │   Relay   │ │              │
-└─────────┘ └──────────┘ └───────────┘ └──────────────┘
++-----------------------------------------------------------+
+|                  Browser (localhost:3000)                   |
+|                                                            |
+|  Next.js Frontend with Educational Components              |
+|  - Interactive Glossary (40+ terms)                        |
+|  - Step-by-step Walkthrough                                |
+|  - User-friendly Metric Cards                              |
+|  - Transaction decoder (swap, transfer, approve, etc.)     |
++----------------------------+-------------------------------+
+                             | API Calls (/api/*)
+                             v
++-----------------------------------------------------------+
+|              Backend Server (localhost:8080)                |
+|                                                            |
+|  - Parallel data fetching with goroutines                  |
+|  - Generic TTL cache (beacon, relay, snapshot)             |
+|  - Worker pool for receipt scanning (sandwich detection)   |
+|  - Transaction lifecycle tracking with receipt analysis    |
+|  - Health monitoring (liveness + readiness probes)         |
++----+----------+----------+-----------+--------------------+
+     |          |          |           |
+     v          v          v           v
++---------+ +--------+ +---------+ +--------------+
+| Alchemy | |Beaconch| |Flashbots| | Other Relays |
+|   RPC   | | a.in   | |  Relay  | |              |
++---------+ +--------+ +---------+ +--------------+
 ```
 
 ### Why This Architecture?
 
-- **Go Backend**: Fast, concurrent data fetching from multiple APIs
-- **Next.js Frontend**: Modern React with server-side rendering for SEO
+- **Go Backend**: Fast, concurrent data fetching from multiple APIs with goroutines
+- **Next.js Frontend**: Modern React with server-side rendering
 - **Public APIs**: No blockchain sync required (saves 500+ GB disk space!)
-- **Caching Layer**: Reduces API calls and improves responsiveness
+- **Generic Cache**: Single `Cache[V any]` type shared across beacon, relay, and snapshot modules
+- **API Proxy**: Configurable proxy mode (`next.config.mjs` rewrites by default, `PROXY_MODE=route` for Railway/Vercel)
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 eth-tx-lifecycle/
-├── backend/                         # Go backend service
+├── backend/                           # Go backend service
 │   ├── cmd/
-│   │   └── backend/
-│   │       └── main.go              # Service entrypoint
+│   │   └── eth-tx-lifecycle/
+│   │       └── main.go                # Service entrypoint
 │   ├── internal/
-│   │   └── backend/
-│   │       ├── server.go            # HTTP routes & request handlers
-│   │       ├── eth_rpc.go           # Ethereum JSON-RPC client
-│   │       ├── mempool_ws.go        # Mempool monitoring (WebSocket + polling)
-│   │       ├── relay.go             # MEV relay client (Flashbots, etc.)
-│   │       ├── beacon.go            # Beacon chain consensus client
-│   │       ├── track_tx.go          # Transaction lifecycle tracking
-│   │       ├── sandwich.go          # MEV sandwich attack detection
-│   │       └── snapshot.go          # Data aggregation & caching
+│   │   ├── server.go                  # HTTP routes & request handlers
+│   │   ├── eth_rpc.go                 # Ethereum JSON-RPC client
+│   │   ├── mempool_ws.go              # Mempool monitoring (HTTP polling)
+│   │   ├── relay.go                   # MEV relay client (Flashbots, etc.)
+│   │   ├── beacon.go                  # Beacon chain consensus client
+│   │   ├── track_tx.go                # Transaction lifecycle tracking
+│   │   ├── tx_decoder.go              # Transaction input decoder (swap, transfer, etc.)
+│   │   ├── sandwich.go                # MEV sandwich detection (parallel worker pool)
+│   │   ├── snapshot.go                # Data aggregation endpoint
+│   │   ├── cache.go                   # Generic TTL cache (Cache[V any])
+│   │   ├── helpers.go                 # Shared utilities (hex parsing, env, HTTP clients)
+│   │   └── health.go                  # Health monitoring & BaseDataSource type
 │   ├── go.mod
 │   └── go.sum
 │
-├── frontend/                        # Next.js frontend
+├── frontend/                          # Next.js frontend
 │   ├── app/
-│   │   ├── page.tsx                 # Main application with intro & guides
-│   │   ├── layout.tsx               # Root layout & global styles
-│   │   ├── components/              # React components
-│   │   │   ├── TransactionView.tsx  # Human-readable transaction display
-│   │   │   ├── BuilderRelayView.tsx # Builder competition visualization
-│   │   │   ├── RelayDeliveredView.tsx  # Winning blocks display
-│   │   │   ├── BeaconHeadersView.tsx   # Block proposals & validator earnings
-│   │   │   ├── FinalityView.tsx     # Casper-FFG finality checkpoints
-│   │   │   ├── SandwichView.tsx     # MEV attack detection results
-│   │   │   ├── Glossary.tsx         # Interactive glossary (40+ terms)
-│   │   │   ├── MermaidDiagram.tsx   # Transaction flow diagram
-│   │   │   └── ...                  # Other UI components
-│   │   └── utils/
-│   │       └── format.ts            # Data formatting utilities (hex→decimal, wei→ETH, etc.)
-│   └── package.json                 # Frontend dependencies
+│   │   ├── page.tsx                   # Main application with intro & guides
+│   │   ├── layout.tsx                 # Root layout & global styles
+│   │   ├── components/
+│   │   │   ├── TransactionView.tsx    # Human-readable transaction display
+│   │   │   ├── BuilderRelayView.tsx   # Builder competition visualization
+│   │   │   ├── RelayDeliveredView.tsx # Winning blocks display
+│   │   │   ├── BeaconHeadersView.tsx  # Block proposals & validator earnings
+│   │   │   ├── FinalityView.tsx       # Casper-FFG finality checkpoints
+│   │   │   ├── SandwichView.tsx       # MEV attack detection results
+│   │   │   ├── Glossary.tsx           # Interactive glossary (40+ terms)
+│   │   │   ├── MermaidDiagram.tsx     # Transaction flow diagram
+│   │   │   ├── MetricCard.tsx         # Reusable metric display card
+│   │   │   ├── Panel.tsx              # Collapsible panel wrapper
+│   │   │   ├── GlowButton.tsx         # Styled button component
+│   │   │   ├── Alert.tsx              # Alert/notification component
+│   │   │   ├── ProgressBar.tsx        # Progress bar component
+│   │   │   └── CaptureButton.tsx      # Screenshot capture button
+│   │   ├── api/
+│   │   │   └── [...path]/route.ts     # Conditional API proxy to Go backend
+│   │   ├── utils/
+│   │   │   └── format.ts             # Data formatting (hex->decimal, wei->ETH)
+│   │   ├── globals.css                # Global styles
+│   │   └── layout.tsx                 # Root layout
+│   ├── next.config.mjs                # Next.js config with API rewrites
+│   ├── tailwind.config.ts             # Tailwind CSS configuration
+│   ├── tsconfig.json                  # TypeScript configuration
+│   └── package.json                   # Frontend dependencies
 │
 ├── scripts/
-│   ├── start-backend.sh             # Script to start backend server
-│   └── start-frontend.sh            # Script to start Next.js server
-├── .env.local                       # Environment configuration
-├── CLAUDE.md                        # Developer documentation
-└── README.md                        # This file!
+│   ├── start-backend.sh               # Compile and start backend server
+│   └── start-frontend.sh              # Start Next.js dev server
+├── Makefile                           # Build/start/stop commands
+├── .env.local                         # Environment configuration (not committed)
+├── CLAUDE.md                          # AI assistant documentation
+├── .cursorrules                       # Cursor IDE rules
+└── README.md                          # This file
 ```
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Data Endpoints
-- `GET /api/mempool` - Real-time mempool data with metrics
-- `GET /api/relays/received` - Builder blocks submitted to relays
-- `GET /api/relays/delivered` - Winning blocks delivered to validators
-- `GET /api/validators/head` - Beacon chain block headers
-- `GET /api/finality` - Casper-FFG finality checkpoints
-- `GET /api/snapshot` - Aggregated data from all sources (cached)
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/mempool` | Real-time mempool data with aggregate metrics |
+| `GET /api/relays/received` | Builder blocks submitted to relays |
+| `GET /api/relays/delivered` | Winning blocks delivered to validators |
+| `GET /api/validators/head` | Beacon chain headers enriched with builder payments |
+| `GET /api/finality` | Casper-FFG finality checkpoints |
+| `GET /api/snapshot` | Aggregated data from all sources (cached) |
+| `GET /api/block/{number}` | Full block with all transactions |
 
 ### Tracking & Analysis
-- `GET /api/track/tx/{hash}` - Complete transaction lifecycle
-- `GET /api/mev/sandwich?block={id}` - MEV sandwich detection for specific block
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/track/tx/{hash}` | Complete transaction lifecycle (supports "latest") |
+| `GET /api/mev/sandwich?block={id}` | MEV sandwich detection for a block |
 
-### Health & Meta
-- `GET /api/health/sources` - Check status of all data sources
+### Health
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/health` | Detailed health status of all data sources |
+| `GET /api/health/live` | Liveness probe (is the server running?) |
+| `GET /api/health/ready` | Readiness probe (are critical sources healthy?) |
 
-## ⚙️ Configuration
+## Configuration
 
-The application uses `.env.local` for configuration. Here are the key variables:
+The application uses `.env.local` at the repository root. Key variables:
 
 ```bash
 # Ethereum RPC (execution layer)
 RPC_HTTP_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
-RPC_WS_URL=wss://eth-mainnet.g.alchemy.com/ws/v2/YOUR_KEY
+RPC_TIMEOUT_SECONDS=5
 
 # Beacon API (consensus layer)
 BEACON_API_URL=https://beaconcha.in/api/v1
+UPSTREAM_TIMEOUT_SECONDS=3
 
 # MEV Relays (comma-separated)
 RELAY_URLS=https://boost-relay.flashbots.net,https://agnostic-relay.net
@@ -260,116 +295,80 @@ WEB_PORT=3000
 
 # Caching
 CACHE_TTL_SECONDS=30
-ERROR_CACHE_TTL_SECONDS=10
+SNAPSHOT_TTL_SECONDS=30
+
+# Sandwich Detection
+SANDWICH_MAX_TX=120          # Max transactions to scan per block
+SANDWICH_WORKERS=10          # Parallel receipt fetch workers
+
+# Mempool
+MEMPOOL_DISABLE=false        # Set to true/1 for mock data
+
+# Frontend Proxy (for Railway/Vercel deployments)
+PROXY_MODE=                  # Set to "route" for server-side proxy
 ```
 
-**Note**: The default public endpoints work fine for learning! You only need to change these if you want to use your own API keys or local nodes.
+**Note**: The default public endpoints work for learning. You only need to change these if you want to use your own API keys or local nodes.
 
-## 🎓 Educational Value
-
-### For Students & Developers
-- **Learn by Seeing**: Watch real blockchain data instead of reading documentation
-- **Understand MEV**: See actual profit extraction happening in real-time
-- **Grasp Economics**: Learn how validators earn money and why gas fees exist
-- **Security Concepts**: Understand finality, attestations, and economic security
-
-### For Crypto Enthusiasts
-- **Deep Dive into PBS**: See the proposer-builder separation market in action
-- **Track Your Transactions**: Follow your own transactions through the full lifecycle
-- **Detect MEV**: Scan for sandwich attacks and understand MEV impact
-- **Real Data**: Everything is live from Ethereum mainnet, not simulated
-
-### For Educators
-- **Interactive Teaching Tool**: Students can click and explore at their own pace
-- **Built-in Glossary**: 40+ terms with beginner-friendly definitions
-- **Step-by-Step Guides**: Structured learning path from basics to advanced concepts
-- **Real-World Analogies**: Post office, concert tickets, bank accounts - familiar concepts!
-
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
 **"No builder block submissions found"**
-- The relay API may be rate limiting
-- Try again in a few minutes
-- This is normal - public relays protect against abuse
+- The relay API may be rate limiting. Try again in a few minutes.
 
 **"Mempool data not available from public RPC"**
-- Some RPC providers don't expose txpool APIs
-- The tool will work with limited mempool data
-- For full mempool access, use your own Alchemy API key
+- Some RPC providers don't expose txpool APIs. The tool works with limited mempool data.
+- For full mempool access, use your own Alchemy API key.
 
 **"Beacon API temporarily unavailable"**
-- Public beacon APIs rate limit
-- Wait a minute and try again
-- Consider running a local beacon node for unlimited access
+- Public beacon APIs have rate limits. Wait a minute and try again.
 
 **Port already in use**
-- Change `GOAPI_ADDR` in `.env.local` for the backend
-- Change `WEB_PORT` in `.env.local` for Next.js
-- Or kill the process using: `lsof -ti:8080 | xargs kill`
+- Run `make stop` to stop all services and free ports.
+- Or manually: `lsof -ti:8080 | xargs kill` and `lsof -ti:3000 | xargs kill`
 
 ### Checking Service Health
 
 ```bash
-# Test backend
-curl http://localhost:8080/api/health/sources
+# Detailed health status
+curl http://localhost:8080/api/health
+
+# Liveness probe
+curl http://localhost:8080/api/health/live
+
+# Readiness probe
+curl http://localhost:8080/api/health/ready
 
 # Test mempool endpoint
 curl http://localhost:8080/api/mempool
-
-# Check frontend
-curl http://localhost:3000
 ```
 
-## 🤝 Contributing
+## Contributing
 
-This is an educational project and contributions are welcome! Here are some ideas:
-
-### Beginner-Friendly Improvements
-- Add more real-world analogies
-- Create video tutorials
-- Add quiz questions to test understanding
-- Translate educational content to other languages
-
-### Technical Improvements
-- Add more MEV detection patterns (liquidations, arbitrage)
-- Implement historical data viewing
-- Add L2 (Layer 2) transaction tracking
-- Create mobile app version
-
-### Data & Analytics
-- Add statistics and charts
-- Track MEV over time
-- Compare different builders
-- Show validator profitability rankings
+This is an educational project and contributions are welcome!
 
 **How to contribute:**
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly
-5. Submit a pull request with detailed description
+4. Verify: `cd backend && go build ./cmd/eth-tx-lifecycle && go vet ./...`
+5. Verify: `cd frontend && npm run build`
+6. Submit a pull request
 
-## 📜 License
+## License
 
 MIT License - Educational use encouraged!
 
 This tool is for learning purposes. Not financial advice. Use at your own risk.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- **Ethereum Foundation** - For building this amazing technology
-- **Flashbots** - For pioneering MEV research and transparency
-- **Alchemy** - For reliable public RPC endpoints
-- **Beaconcha.in** - For free beacon chain API access
-
-## 📞 Support & Community
-
-- **Questions?** Open an issue on GitHub
-- **Found a bug?** Please report it!
-- **Want to chat?** Join our discussions
+- **Ethereum Foundation** - For building this technology
+- **Flashbots** - For MEV research and transparency
+- **Alchemy** - For public RPC endpoints
+- **Beaconcha.in** - For beacon chain API access
 
 ---
 
-**Happy Learning!** 🚀 Understanding Ethereum makes you a better crypto user, developer, and investor.
+**GitHub**: [DanDo385/eth-tx-lifecycle](https://github.com/DanDo385/eth-tx-lifecycle)

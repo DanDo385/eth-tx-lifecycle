@@ -1,0 +1,160 @@
+# Cursor Rules for eth-tx-lifecycle
+
+## Project Overview
+
+This is **eth-tx-lifecycle** - an educational Ethereum visualization tool designed for complete beginners with zero cryptocurrency knowledge. It demonstrates the complete journey of transactions from mempool to finality using real-time Ethereum data.
+
+The system consists of a Go backend and a Next.js frontend that work together to fetch and display real-time Ethereum data with educational commentary.
+
+## Architecture
+
+- **Go Backend** (`backend/`): Handles all Ethereum data fetching, processing, and API endpoints. Uses goroutines for parallel data fetching and a generic TTL cache shared across modules.
+- **Next.js Frontend** (`frontend/`): React application with TypeScript, Tailwind CSS, and interactive visualizations. Uses App Router pattern.
+- **Data Sources**: Public APIs (Alchemy JSON-RPC, Beaconcha.in, Flashbots relay) - no local blockchain sync required.
+
+## Backend Structure (refactored)
+
+- **Entrypoint:** `backend/cmd/eth-tx-lifecycle/main.go` → `backend.Run()` in `internal/run.go` → `internal/server.Run()`.
+
+- **Config** (`backend/config/`, outside internal): `config.go` — env loading (`LoadEnvFile`, `EnvOr`), hex parsing (`ParseHexUint64`, `ParseHexBigInt`), HTTP client (`NewHTTPClient`), URL sanitization (`SanitizeURL`, `RedactAPIKey`).
+
+- **internal/pkg/** — Shared infrastructure (no business logic):
+  - `cache.go` — Generic TTL cache (`Cache[V]`, `NewCache`); used by beacon, relay, server (snapshot cache).
+  - `health.go` — `BaseDataSource`, health aggregation (`BuildOverall`, `StatusFromSource`, `WriteLiveness`); used by clients and domain.
+
+- **internal/clients/** — External API clients (each a subpackage):
+  - `eth/eth.go` — Ethereum JSON-RPC client (`Call`, `CheckHealth`, `SourceInfo`).
+  - `beacon/beacon.go` — Beacon chain REST client (`Get`, `CheckHealth`, `SourceInfo`).
+  - `relay/relay.go` — MEV relay client (`Get`, `CheckHealth`, `SourceInfo`); negative caching for failed relays.
+
+- **internal/domain/** — Feature logic (single package, multiple files):
+  - `mempool.go` — Pending tx monitoring via HTTP polling; `GetData()`, `Start()`, `CheckHealth()`.
+  - `track.go` — Transaction lifecycle (`TrackTx`); supports "latest"; uses eth, beacon, relay, txdecode.
+  - `txdecode.go` — Transaction input decoder (`DecodeTransactionInput`); swaps, transfers, approvals, mints, claims, etc.; uses receipt Transfer events to reclassify unknown methods.
+  - `sandwich.go` — MEV sandwich detection (Uniswap V2/V3 Swap heuristics); `FetchBlockFull`, `CollectSwaps`, `DetectSandwiches`; bounded worker pool for receipts.
+  - `snapshot.go` — Aggregated data (`BuildSnapshot`, `LogSnapshot`, `SnapshotTTL`); orchestrates mempool, relay, beacon, optional MEV.
+
+- **internal/server/** — HTTP API: `server.go` — CORS, route definitions, handlers; `writeOK()`/`writeErr()`, `eduEnvelope`; calls config, pkg, clients (eth, beacon, relay), domain.
+
+## Frontend Structure (`frontend/`)
+
+- `app/page.tsx` - Main application with welcome intro, step-by-step walkthrough, panel buttons, and transaction tracking input
+- `app/components/` - Specialized React components:
+  - `TransactionView.tsx` - Human-readable transaction display with economics, decoded action, MEV info, finality
+  - `BuilderRelayView.tsx` - Builder competition visualization
+  - `RelayDeliveredView.tsx` - Winning blocks delivered to validators
+  - `BeaconHeadersView.tsx` - Proposed blocks with builder payments
+  - `FinalityView.tsx` - Casper-FFG finality checkpoints
+  - `SandwichView.tsx` - MEV sandwich attack detection results
+  - `Glossary.tsx` - Interactive glossary (40+ terms, 5 categories)
+  - `MermaidDiagram.tsx` - Transaction flow visualization
+  - `MetricCard.tsx`, `Panel.tsx`, `GlowButton.tsx`, `Alert.tsx`, `ProgressBar.tsx`, `CaptureButton.tsx` - Reusable UI components
+- `app/utils/format.ts` - Data formatting (hex to decimal, wei to ETH, gwei conversions, hash shortening)
+- `app/api/[...path]/route.ts` - Conditional API proxy; only active when `PROXY_MODE=route` (for Railway/Vercel); otherwise falls through to `next.config.mjs` rewrites
+- Styling: Tailwind CSS with dark theme and gradient accents
+
+## Key Conventions
+
+### Go Backend
+- Entrypoint is package `main` in `cmd/eth-tx-lifecycle`; rest is `backend` (run.go) plus packages under `internal/` and `config/`.
+- Use `writeOK(w, payload)` and `writeErr(w, status, kind, message, hint)` in server for JSON responses; all responses wrapped in `eduEnvelope{Data: ..., Error: ...}` (never both).
+- Config: use `config` package (`EnvOr`, `LoadEnvFile`, `ParseHexUint64`, `ParseHexBigInt`, `NewHTTPClient`, `SanitizeURL`, `RedactAPIKey`).
+- Caching: use `pkg.Cache[V]` and `pkg.NewCache` (internal/pkg) — avoid custom cache implementations.
+- Use goroutines with channels for parallel API calls (e.g. server `handleBeaconHeaders`, domain snapshot).
+- Worker pools: bounded semaphore pattern in domain/sandwich (`CollectSwaps`).
+- Health: update `pkg.BaseDataSource` (`SetSuccess()`/`SetError()`) in clients and domain after external calls.
+
+### Frontend
+- TypeScript with strict mode
+- Tailwind CSS for all styling - dark theme with gradient accents
+- All hex values must be converted to human-readable format before display (use `format.ts` utilities)
+- All wei/gwei values must be converted to ETH
+- Educational components must include beginner-friendly explanations with real-world analogies
+- Use metric cards with gradients for key statistics
+- State management via React useState/useEffect hooks
+
+### API Proxy
+- Default: `next.config.mjs` rewrites handle `/api/*` -> Go backend (zero overhead)
+- Railway/Vercel: Set `PROXY_MODE=route` to enable server-side proxy in `route.ts`
+
+## Development Commands
+
+```bash
+# Start both services (recommended)
+make start
+
+# Stop both services
+make stop
+
+# Check service status
+make status
+
+# Start individually
+./scripts/start-backend.sh    # Compiles Go binary, runs on :8080
+./scripts/start-frontend.sh   # Next.js dev server on :3000
+
+# Build
+cd backend && go build ./cmd/eth-tx-lifecycle
+cd frontend && npm run build
+
+# Verify
+cd backend && go vet ./...
+cd frontend && npm run build
+```
+
+## Environment Configuration
+
+Config lives in `.env.local` at repo root. Key variables:
+
+- `RPC_HTTP_URL` - Ethereum JSON-RPC endpoint (defaults to public Alchemy)
+- `BEACON_API_URL` - Beacon chain API endpoint
+- `RELAY_URLS` - Comma-separated MEV relay endpoints
+- `GOAPI_ADDR` - Backend listen address (default `:8080`)
+- `GOAPI_ORIGIN` - Backend origin for CORS (default `http://localhost:8080`)
+- `WEB_PORT` - Frontend port (default `3000`)
+- `CACHE_TTL_SECONDS` / `SNAPSHOT_TTL_SECONDS` - Cache TTLs
+- `SANDWICH_MAX_TX` - Max transactions to scan per block (default `120`)
+- `SANDWICH_WORKERS` - Parallel receipt fetch workers (default `10`)
+- `PROXY_MODE` - Set to `route` for server-side API proxy
+- `MEMPOOL_DISABLE` - Set to `true` for mock mempool data
+
+## API Endpoints
+
+### Data
+- `GET /api/mempool` - Real-time mempool with metrics
+- `GET /api/relays/received` - Builder blocks submitted to relays
+- `GET /api/relays/delivered` - Winning payloads to validators
+- `GET /api/validators/head` - Beacon headers + builder payments
+- `GET /api/finality` - Casper-FFG checkpoints
+- `GET /api/snapshot` - Aggregated cached data
+- `GET /api/block/{number}` - Full block with transactions
+
+### Tracking & Analysis
+- `GET /api/track/tx/{hash}` - Transaction lifecycle (supports "latest")
+- `GET /api/mev/sandwich?block={id}` - Sandwich detection
+
+### Health
+- `GET /api/health` - Detailed health of all data sources
+- `GET /api/health/live` - Liveness probe
+- `GET /api/health/ready` - Readiness probe
+
+## Common Patterns
+
+### Adding a New API Endpoint
+1. Add handler in `internal/server/server.go` and register route in `Run()`.
+2. Implement data fetching in the right package: `internal/clients/*` for new external APIs, `internal/domain/*` for new feature logic.
+3. Use `writeOK()`/`writeErr()` for responses.
+4. Create React component in `frontend/app/components/`, add panel in `frontend/app/page.tsx`, include educational content.
+
+### Adding a New Transaction Type to Decoder
+1. Add method signature to `methodSignatures` in `internal/domain/txdecode.go`.
+2. Add `decode{Type}()` and branch in `DecodeTransactionInput()`.
+3. Add action-type-specific UI in `TransactionView.tsx` (Overview and "What This Transaction Does").
+
+## Educational Content Guidelines
+
+- Always include beginner-friendly explanations with real-world analogies
+- Use metric cards with gradients and color-coding for key statistics
+- Provide context about why things matter and how they impact users
+- Show the math - explain calculations for gas fees, validator earnings, etc.
+- Explain edge cases - what happens during congestion, rate limiting, etc.

@@ -24,19 +24,19 @@ The project follows a clean separation between data fetching (Go) and presentati
 - **Next.js Frontend** (`frontend/`): Modern React application with TypeScript, Tailwind CSS, and interactive visualizations
 - **Data Sources**: Uses public APIs (Alchemy, Beaconcha.in, Flashbots) - no local blockchain sync required
 
-### Backend Structure
+### Backend Structure (refactored)
 
-The Go backend is organized into an entrypoint with internal modules:
+The Go backend uses a consolidated layout: config outside internal, then four internal areas (pkg, clients, domain, server).
 
-- `cmd/eth-tx-lifecycle/main.go`: Service entrypoint
-- `internal/server.go`: HTTP server with CORS handling and route definitions for all API endpoints
-- `internal/eth_rpc.go`: Ethereum JSON-RPC client for mempool and transaction data
-- `internal/beacon.go`: Beacon chain API client for consensus layer data (validator headers, finality checkpoints)
-- `internal/relay.go`: MEV relay client for PBS data (builder submissions, delivered payloads)
-- `internal/mempool_ws.go`: WebSocket-based mempool monitoring with aggregate metrics (total gas, value, avg price, high-priority count)
-- `internal/track_tx.go`: Transaction lifecycle tracking across execution and consensus layers
-- `internal/sandwich.go`: MEV sandwich attack detection using Uniswap V2/V3 heuristics (front-run → victim → back-run patterns)
-- `internal/snapshot.go`: Caching layer for API responses with fallback logic for relay endpoints
+- **Entrypoint:** `cmd/eth-tx-lifecycle/main.go` → `internal/run.go` (`Run()`) → `internal/server.Run()`.
+- **config/** (sibling of internal): `config.go` — env (`LoadEnvFile`, `EnvOr`), hex parsing, HTTP client, URL sanitization.
+- **internal/pkg/:** `cache.go` (TTL cache, `NewCache`), `health.go` (`BaseDataSource`, aggregation). Shared by clients and server.
+- **internal/clients/:** External API clients (subpackages):
+  - `eth/` — JSON-RPC client (`Call`, `CheckHealth`, `SourceInfo`).
+  - `beacon/` — Beacon REST client (`Get`, `CheckHealth`, `SourceInfo`).
+  - `relay/` — MEV relay client (`Get`, `CheckHealth`, `SourceInfo`); negative caching.
+- **internal/domain/:** Feature logic (one package, multiple files): `mempool.go` (pending tx polling; `GetData`, `Start`, `CheckHealth`), `track.go` (transaction lifecycle `TrackTx`; supports "latest"), `txdecode.go` (input decoder `DecodeTransactionInput`), `sandwich.go` (MEV sandwich detection; `FetchBlockFull`, `CollectSwaps`, `DetectSandwiches`), `snapshot.go` (aggregated data `BuildSnapshot`, `LogSnapshot`).
+- **internal/server/:** `server.go` — HTTP server, CORS, routes, handlers; `writeOK`/`writeErr`, `eduEnvelope`; calls config, pkg, clients, domain.
 
 ### Frontend Structure
 
@@ -101,8 +101,8 @@ Configuration is handled through `.env.local` at the repository root. Key variab
 ## Key Dependencies
 
 ### Go Dependencies
-- `github.com/gorilla/websocket`: WebSocket support for real-time mempool data
-- Standard library only - minimal external dependencies
+- `golang.org/x/crypto`: Keccak (sha3) for MEV sandwich topic hashing in `internal/domain/sandwich.go`
+- Otherwise standard library; mempool uses HTTP polling via `internal/clients/eth`, not WebSocket
 
 ### Frontend Dependencies
 - `next`: Next.js 14 with App Router and TypeScript
@@ -129,19 +129,17 @@ The backend exposes these educational endpoints:
 
 ### Adding New API Endpoints
 
-1. Add handler function in `backend/internal/server.go`
-2. Implement data fetching logic in appropriate module (eth_rpc.go, beacon.go, relay.go, etc.)
-3. Use `writeOK()` and `writeErr()` helpers for consistent JSON responses
-4. Create or update React component in `frontend/app/components/` with educational content
-5. Add frontend integration in `frontend/app/page.tsx` with appropriate panel button
-6. Include detailed educational explanations, analogies, and metric cards
+1. Add handler in `internal/server/server.go` and register route in `Run()`.
+2. Implement data fetching in the right package: `internal/clients/*` for new external APIs, `internal/domain/*` for new feature logic.
+3. Use `writeOK()` and `writeErr()` for responses.
+4. Create or update React component in `frontend/app/components/`, add panel in `frontend/app/page.tsx`, include educational content.
 
 ### Working with Real-time Data
 
-The system uses WebSocket connections for live mempool data and implements caching for expensive API calls:
-- `mempool_ws.go`: WebSocket connection with fallback to HTTP polling, includes `calculateMempoolMetrics()` for aggregate statistics
-- `snapshot.go`: Caches relay data with fallback logic (tries `builder_blocks_received` first, then `proposer_payload_delivered`)
-- All endpoints include error handling for rate limits and unavailable data sources
+The backend uses HTTP polling for mempool (no WebSocket) and TTL caching for expensive calls:
+- **internal/domain/mempool.go**: Polls pending block via `internal/clients/eth`; `GetData()`, `Start()`, metrics; started once from server `Run()`.
+- **internal/domain/snapshot.go**: Builds aggregated response; relay fallback (builder_blocks_received then proposer_payload_delivered); server caches serialized snapshot in `pkg.Cache`.
+- All endpoints handle rate limits and unavailable sources.
 
 ### Frontend State Management
 
