@@ -1,4 +1,4 @@
-# ethEdu - Ethereum Transaction Visualizer
+# eth-tx-lifecycle - Ethereum Transaction Visualizer
 
 **An educational tool for understanding how Ethereum really works** - from your first "send" click to permanent blockchain finality.
 
@@ -40,37 +40,37 @@ Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows 
 ### Prerequisites
 
 - **Go 1.21+** (for the API server) - [Download Go](https://go.dev/dl/)
-- **Node.js 18+** (for the web frontend) - [Download Node.js](https://nodejs.org/)
+- **Node.js 18+** (for the frontend) - [Download Node.js](https://nodejs.org/)
 - **5 minutes** of your time!
 
 ### Installation
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/ethEdu
-   cd ethEdu
+   git clone https://github.com/yourusername/eth-tx-lifecycle
+   cd eth-tx-lifecycle
    ```
 
 2. **Install dependencies**:
    ```bash
    # Install Go dependencies (backend)
-   cd go-api
+   cd backend
    go mod tidy
    cd ..
 
    # Install Node.js dependencies (frontend)
-   cd web
+   cd frontend
    npm install
    cd ..
    ```
 
 3. **Start both servers** (in separate terminals):
    ```bash
-   # Terminal 1: Start Go API server (port 8080)
-   ./start-go-api.sh
+   # Terminal 1: Start backend server (port 8080)
+   ./scripts/start-backend.sh
 
-   # Terminal 2: Start Next.js web server (port 3000)
-   ./start-web.sh
+   # Terminal 2: Start Next.js frontend (port 3000)
+   ./scripts/start-frontend.sh
    ```
 
 4. **Open your browser**:
@@ -152,7 +152,7 @@ Click **"6) Sandwich detector"** and enter "latest" or a specific block number t
                        │ API Calls
                        ▼
 ┌─────────────────────────────────────────────────────────┐
-│              Go API Server (localhost:8080)              │
+│              Backend Server (localhost:8080)             │
 │                                                          │
 │  - Mempool Monitoring (WebSocket + HTTP polling)        │
 │  - Transaction Tracking                                 │
@@ -177,18 +177,25 @@ Click **"6) Sandwich detector"** and enter "latest" or a specific block number t
 ## 📂 Project Structure
 
 ```
-ethEdu/
-├── go-api/                          # Go backend service
-│   ├── main.go                      # HTTP routes & request handlers
-│   ├── eth_rpc.go                   # Ethereum JSON-RPC client
-│   ├── mempool_ws.go               # Mempool monitoring (WebSocket + polling)
-│   ├── relay.go                     # MEV relay client (Flashbots, etc.)
-│   ├── beacon.go                    # Beacon chain consensus client
-│   ├── track_tx.go                  # Transaction lifecycle tracking
-│   ├── sandwich.go                  # MEV sandwich attack detection
-│   └── snapshot.go                  # Data aggregation & caching
+eth-tx-lifecycle/
+├── backend/                         # Go backend service
+│   ├── cmd/
+│   │   └── backend/
+│   │       └── main.go              # Service entrypoint
+│   ├── internal/
+│   │   └── backend/
+│   │       ├── server.go            # HTTP routes & request handlers
+│   │       ├── eth_rpc.go           # Ethereum JSON-RPC client
+│   │       ├── mempool_ws.go        # Mempool monitoring (WebSocket + polling)
+│   │       ├── relay.go             # MEV relay client (Flashbots, etc.)
+│   │       ├── beacon.go            # Beacon chain consensus client
+│   │       ├── track_tx.go          # Transaction lifecycle tracking
+│   │       ├── sandwich.go          # MEV sandwich attack detection
+│   │       └── snapshot.go          # Data aggregation & caching
+│   ├── go.mod
+│   └── go.sum
 │
-├── web/                             # Next.js frontend
+├── frontend/                        # Next.js frontend
 │   ├── app/
 │   │   ├── page.tsx                 # Main application with intro & guides
 │   │   ├── layout.tsx               # Root layout & global styles
@@ -206,8 +213,9 @@ ethEdu/
 │   │       └── format.ts            # Data formatting utilities (hex→decimal, wei→ETH, etc.)
 │   └── package.json                 # Frontend dependencies
 │
-├── start-go-api.sh                  # Script to start Go API server
-├── start-web.sh                     # Script to start Next.js server
+├── scripts/
+│   ├── start-backend.sh             # Script to start backend server
+│   └── start-frontend.sh            # Script to start Next.js server
 ├── .env.local                       # Environment configuration
 ├── CLAUDE.md                        # Developer documentation
 └── README.md                        # This file!
@@ -257,32 +265,6 @@ ERROR_CACHE_TTL_SECONDS=10
 
 **Note**: The default public endpoints work fine for learning! You only need to change these if you want to use your own API keys or local nodes.
 
-## 🚀 Deployment
-
-### Deploy to Vercel + Railway
-
-1. **Deploy Go API to Railway:**
-   ```bash
-   # In the go-api directory
-   railway login
-   railway init
-   railway up
-   ```
-
-2. **Deploy Frontend to Vercel:**
-   ```bash
-   # In the web directory
-   vercel login
-   vercel --prod
-   ```
-
-3. **Configure Environment Variables:**
-   - In Vercel dashboard, go to your project settings
-   - Add environment variable: `GOAPI_ORIGIN=https://your-railway-app.up.railway.app`
-   - Redeploy the frontend
-
-The `vercel.json` file is already configured with the Railway URL for automatic deployment.
-
 ## 🎓 Educational Value
 
 ### For Students & Developers
@@ -323,20 +305,20 @@ The `vercel.json` file is already configured with the Railway URL for automatic 
 - Consider running a local beacon node for unlimited access
 
 **Port already in use**
-- Change `GOAPI_ADDR` in `.env.local` for Go API
+- Change `GOAPI_ADDR` in `.env.local` for the backend
 - Change `WEB_PORT` in `.env.local` for Next.js
 - Or kill the process using: `lsof -ti:8080 | xargs kill`
 
 ### Checking Service Health
 
 ```bash
-# Test Go API
+# Test backend
 curl http://localhost:8080/api/health/sources
 
 # Test mempool endpoint
 curl http://localhost:8080/api/mempool
 
-# Check web server
+# Check frontend
 curl http://localhost:3000
 ```
 

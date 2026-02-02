@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **ethEdu** - an educational Ethereum visualization tool designed for complete beginners with zero cryptocurrency knowledge. It demonstrates the complete journey of transactions from mempool to finality using real-time Ethereum data.
+This is **eth-tx-lifecycle** - an educational Ethereum visualization tool designed for complete beginners with zero cryptocurrency knowledge. It demonstrates the complete journey of transactions from mempool to finality using real-time Ethereum data.
 
 **Key Educational Features:**
 - Interactive glossary with 40+ terms organized by category
@@ -14,28 +14,29 @@ This is **ethEdu** - an educational Ethereum visualization tool designed for com
 - Live MEV sandwich attack detection with victim/attacker visualization
 - Human-readable transaction tracking across execution and consensus layers
 
-The system consists of a Go API backend and a Next.js frontend that work together to fetch and display real-time Ethereum data with extensive educational commentary.
+The system consists of a Go backend and a Next.js frontend that work together to fetch and display real-time Ethereum data with extensive educational commentary.
 
 ## Architecture
 
 The project follows a clean separation between data fetching (Go) and presentation (React/Next.js):
 
-- **Go API** (`go-api/`): Handles all Ethereum data fetching, processing, and API endpoints
-- **Next.js Frontend** (`web/`): Modern React application with TypeScript, Tailwind CSS, and interactive visualizations
+- **Go Backend** (`backend/`): Handles all Ethereum data fetching, processing, and API endpoints
+- **Next.js Frontend** (`frontend/`): Modern React application with TypeScript, Tailwind CSS, and interactive visualizations
 - **Data Sources**: Uses public APIs (Alchemy, Beaconcha.in, Flashbots) - no local blockchain sync required
 
-### Go API Structure
+### Backend Structure
 
-The Go backend is organized into specialized modules:
+The Go backend is organized into an entrypoint with internal modules:
 
-- `main.go`: HTTP server with CORS handling and route definitions for all API endpoints
-- `eth_rpc.go`: Ethereum JSON-RPC client for mempool and transaction data
-- `beacon.go`: Beacon chain API client for consensus layer data (validator headers, finality checkpoints)
-- `relay.go`: MEV relay client for PBS data (builder submissions, delivered payloads)
-- `mempool_ws.go`: WebSocket-based mempool monitoring with aggregate metrics (total gas, value, avg price, high-priority count)
-- `track_tx.go`: Transaction lifecycle tracking across execution and consensus layers
-- `sandwich.go`: MEV sandwich attack detection using Uniswap V2/V3 heuristics (front-run → victim → back-run patterns)
-- `snapshot.go`: Caching layer for API responses with fallback logic for relay endpoints
+- `cmd/eth-tx-lifecycle/main.go`: Service entrypoint
+- `internal/server.go`: HTTP server with CORS handling and route definitions for all API endpoints
+- `internal/eth_rpc.go`: Ethereum JSON-RPC client for mempool and transaction data
+- `internal/beacon.go`: Beacon chain API client for consensus layer data (validator headers, finality checkpoints)
+- `internal/relay.go`: MEV relay client for PBS data (builder submissions, delivered payloads)
+- `internal/mempool_ws.go`: WebSocket-based mempool monitoring with aggregate metrics (total gas, value, avg price, high-priority count)
+- `internal/track_tx.go`: Transaction lifecycle tracking across execution and consensus layers
+- `internal/sandwich.go`: MEV sandwich attack detection using Uniswap V2/V3 heuristics (front-run → victim → back-run patterns)
+- `internal/snapshot.go`: Caching layer for API responses with fallback logic for relay endpoints
 
 ### Frontend Structure
 
@@ -52,7 +53,7 @@ The Next.js app uses the App Router pattern with extensive educational component
   - `SandwichView.tsx`: MEV sandwich attack detection with step-by-step explanations
   - `MermaidDiagram.tsx`: Transaction flow visualization
 - `app/utils/format.ts`: Data formatting utilities (hex→decimal, wei→ETH, gwei conversions, hash shortening)
-- `app/api/[...path]/route.ts`: API proxy to Go backend
+- `frontend/app/api/[...path]/route.ts`: API proxy to Go backend
 - Styling: Tailwind CSS with dark theme and gradient accents
 
 ## Development Commands
@@ -62,24 +63,24 @@ The Next.js app uses the App Router pattern with extensive educational component
 Always use the provided scripts which handle environment loading:
 
 ```bash
-# Start Go API server (runs on :8080 by default, or GOAPI_ADDR from .env.local)
-./start-go-api.sh
+# Start backend server (runs on :8080 by default, or GOAPI_ADDR from .env.local)
+./scripts/start-backend.sh
 
 # Start Next.js development server (runs on :3000 by default, or WEB_PORT from .env.local)
-./start-web.sh
+./scripts/start-frontend.sh
 ```
 
 ### Build Commands
 
 ```bash
-# Build Go API binary
-cd go-api && go build -o eth-edu-goapi
+# Build backend binary
+cd backend && go build -o eth-tx-lifecycle-backend ./cmd/eth-tx-lifecycle
 
 # Build Next.js for production
-cd web && npm run build
+cd frontend && npm run build
 
 # Start production Next.js server
-cd web && npm run start
+cd frontend && npm run start
 ```
 
 ### Testing and Linting
@@ -94,8 +95,8 @@ Configuration is handled through `.env.local` at the repository root. Key variab
 - `BEACON_API_URL`: Beacon chain API endpoint
 - `RELAY_URLS`: Comma-separated list of MEV relay endpoints
 - `WEB_PORT`: Next.js development server port (default: 3000)
-- `GOAPI_ADDR`: Go API server address (default: :8080)
-- `GOAPI_ORIGIN`: Go API origin for CORS (should match GOAPI_ADDR)
+- `GOAPI_ADDR`: Backend server address (default: :8080)
+- `GOAPI_ORIGIN`: Backend origin for CORS (should match GOAPI_ADDR)
 
 ## Key Dependencies
 
@@ -113,7 +114,7 @@ Configuration is handled through `.env.local` at the repository root. Key variab
 
 ## API Endpoints
 
-The Go API exposes these educational endpoints:
+The backend exposes these educational endpoints:
 
 - `GET /api/mempool`: Real-time mempool data with aggregate metrics (total gas, value, avg gas price, high-priority count)
 - `GET /api/relays/received`: Builder block submissions received by relays (shows all competing blocks for each slot)
@@ -128,11 +129,11 @@ The Go API exposes these educational endpoints:
 
 ### Adding New API Endpoints
 
-1. Add handler function in `go-api/main.go`
+1. Add handler function in `backend/internal/server.go`
 2. Implement data fetching logic in appropriate module (eth_rpc.go, beacon.go, relay.go, etc.)
 3. Use `writeOK()` and `writeErr()` helpers for consistent JSON responses
-4. Create or update React component in `web/app/components/` with educational content
-5. Add frontend integration in `web/app/page.tsx` with appropriate panel button
+4. Create or update React component in `frontend/app/components/` with educational content
+5. Add frontend integration in `frontend/app/page.tsx` with appropriate panel button
 6. Include detailed educational explanations, analogies, and metric cards
 
 ### Working with Real-time Data
@@ -146,7 +147,7 @@ The system uses WebSocket connections for live mempool data and implements cachi
 
 The main application uses React state with useEffect hooks for data fetching:
 - Each panel (mempool, builder relay, delivered, headers, finality, sandwich) has dedicated state
-- Data is fetched from Go API and transformed using `app/utils/format.ts` utilities
+- Data is fetched from the backend and transformed using `app/utils/format.ts` utilities
 - Educational components include summary metrics, detailed explanations, and human-readable tables
 - All monetary values converted from wei/gwei to ETH, all hex values converted to decimal
 
@@ -164,7 +165,7 @@ When adding new features or components:
 ## Port Configuration
 
 Default ports:
-- Go API: `:8080` (configurable via `GOAPI_ADDR`)
+- Backend: `:8080` (configurable via `GOAPI_ADDR`)
 - Next.js: `:3000` (configurable via `WEB_PORT`)
 
 Both start scripts check for port conflicts and load configuration from `.env.local`.

@@ -64,5 +64,9 @@ Thumbs.db
 *.tsbuildinfo
 
 # Local Go build artifacts
-/go-api/eth-edu-goapi
-/go-api/test-api
+/backend/eth-tx-lifecycle-backend
+/backend/backend
+/backend/test-api
+
+# Local dev pid/logs
+.pids/
