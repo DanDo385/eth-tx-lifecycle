@@ -20,28 +20,20 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
     return <p className="text-white/60">No delivered payloads found</p>;
   }
 
-  // Filter to only show active blocks (for demo purposes)
-  // Only show blocks for the most recent slot(s)
+  // Use all delivered payloads from backend; sort by slot descending (most recent first)
   const allPayloads = data.delivered_payloads;
-  const allSlots = allPayloads.map(p => p.slot ? parseInt(p.slot) : 0).filter(s => s > 0).sort((a, b) => b - a);
-  const highestSlot = allSlots.length > 0 ? allSlots[0] : 0;
-  
-  // Only show blocks for the highest slot and the slot before it (active competition)
-  const activeSlots = new Set<number>();
-  if (highestSlot > 0) {
-    activeSlots.add(highestSlot);
-    if (allSlots.length > 1) {
-      activeSlots.add(allSlots[1]);
-    }
-  }
-  
-  const payloads = allPayloads.filter(payload => {
-    const slot = payload.slot ? parseInt(payload.slot) : 0;
-    return slot > 0 && activeSlots.has(slot);
+  const payloads = [...allPayloads].sort((a, b) => {
+    const sa = a.slot ? parseInt(a.slot) : 0;
+    const sb = b.slot ? parseInt(b.slot) : 0;
+    return sb - sa;
   });
-  
+
+  const highestSlot = payloads.length > 0 && payloads[0].slot
+    ? parseInt(payloads[0].slot)
+    : 0;
+
   if (payloads.length === 0) {
-    return <p className="text-white/60">No active delivered payloads found</p>;
+    return <p className="text-white/60">No delivered payloads found</p>;
   }
 
   // Calculate aggregate metrics
@@ -67,6 +59,9 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
 
   // Get unique builders (winning builders)
   const uniqueBuilders = new Set(payloads.map(p => p.builder_pubkey).filter(Boolean));
+
+  const DISPLAY_LIMIT = 10;
+  const displayedPayloads = payloads.slice(0, DISPLAY_LIMIT);
 
   return (
     <div className="space-y-4">
@@ -97,14 +92,13 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
         </div>
       </div>
 
-      {/* Active Blocks Info */}
+      {/* Summary */}
       {highestSlot > 0 && (
         <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-3 text-sm">
           <div className="flex items-start gap-2">
             <span className="text-green-400 text-lg">⚡</span>
             <div className="text-white/80">
-              <strong className="text-white">Showing Active Winning Blocks:</strong> These {payloads.length} blocks won the auction for slot {highestSlot.toLocaleString()} and recent slots. 
-              <span className="text-green-300 text-xs block mt-1">Demo Mode: Only showing active/pending blocks. Historical blocks are filtered out.</span>
+              <strong className="text-white">Winning blocks delivered:</strong> All {formatNumber(payloads.length)} blocks below won the MEV auction and were delivered to validators. Only the first {Math.min(10, payloads.length)} are shown in the table (sorted by slot, most recent first).
             </div>
           </div>
         </div>
@@ -132,8 +126,11 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
         </div>
       </div>
 
-      {/* Delivered Payloads Table */}
+      {/* Table shows first 10 blocks; metrics above use full count */}
       <div className="border border-white/10 rounded-lg overflow-hidden">
+        <div className="bg-white/5 border-b border-white/10 px-3 py-2 text-xs text-white/70">
+          Showing {displayedPayloads.length} of {formatNumber(payloads.length)} delivered blocks below.
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-white/5 border-b border-white/10">
@@ -148,7 +145,7 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
               </tr>
             </thead>
             <tbody>
-              {payloads.slice(0, 20).map((payload, idx) => {
+              {displayedPayloads.map((payload, idx) => {
                 const payment = payload.value ? weiToEth(payload.value) : '0';
                 const paymentNum = parseFloat(payment);
                 const gasUsed = payload.gas_used ? hexToNumber(payload.gas_used) : 0;
@@ -180,8 +177,10 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
         </div>
       </div>
 
-      {payloads.length > 20 && (
-        <p className="text-white/50 text-xs text-center">Showing 20 of {payloads.length} delivered payloads</p>
+      {payloads.length > DISPLAY_LIMIT && (
+        <p className="text-white/50 text-xs text-center mt-2">
+          Showing {DISPLAY_LIMIT} of {formatNumber(payloads.length)} delivered blocks. Total count and metrics above include all {formatNumber(payloads.length)} blocks.
+        </p>
       )}
     </div>
   );

@@ -7,11 +7,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
+
+	"golang.org/x/crypto/sha3"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/you/eth-tx-lifecycle-backend/config"
 	"github.com/you/eth-tx-lifecycle-backend/internal/clients/eth"
-	"golang.org/x/crypto/sha3"
 )
 
 // Block is a minimal block structure for sandwich detection.
@@ -132,18 +133,17 @@ func CollectSwaps(b *Block) ([]SwapEvent, error) {
 		maxN = sandwichMaxTx
 	}
 	results := make([][]SwapEvent, maxN)
-	sem := make(chan struct{}, sandwichWorkers)
-	var wg sync.WaitGroup
+
+	g := new(errgroup.Group)
+	g.SetLimit(sandwichWorkers)
+
 	for idx := 0; idx < maxN; idx++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
+		i := idx
+		g.Go(func() error {
 			tx := b.Transactions[i]
 			rcpt, err := fetchSandwichReceipt(tx.Hash)
 			if err != nil || rcpt == nil {
-				return
+				return nil
 			}
 			var local []SwapEvent
 			for logIdx, lg := range rcpt.Logs {
@@ -160,9 +160,12 @@ func CollectSwaps(b *Block) ([]SwapEvent, error) {
 				})
 			}
 			results[i] = local
-		}(idx)
+			return nil
+		})
 	}
-	wg.Wait()
+
+	_ = g.Wait()
+
 	var swaps []SwapEvent
 	for _, local := range results {
 		swaps = append(swaps, local...)

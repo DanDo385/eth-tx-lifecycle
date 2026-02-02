@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/you/eth-tx-lifecycle-backend/config"
 	"github.com/you/eth-tx-lifecycle-backend/internal/clients/beacon"
 	"github.com/you/eth-tx-lifecycle-backend/internal/clients/eth"
@@ -68,17 +70,41 @@ func handleMempool(w http.ResponseWriter, _ *http.Request) {
 	writeOK(w, domain.GetData())
 }
 
-func handleRelaysDelivered(w http.ResponseWriter, r *http.Request) {
-	limit := parseLimit(r, 10)
-	raw, err := relay.Get(fmt.Sprintf("/relay/v1/data/bidtraces/proposer_payload_delivered?limit=%d", limit))
+// relayDeliveredLimit is the max limit accepted by standard MEV-Boost relay APIs.
+const relayDeliveredLimit = 200
+
+func handleRelaysDelivered(w http.ResponseWriter, _ *http.Request) {
+	path := fmt.Sprintf("/relay/v1/data/bidtraces/proposer_payload_delivered?limit=%d", relayDeliveredLimit)
+	bodies, err := relay.GetFromAllRelays(path)
 	if err != nil {
 		writeErr(w, http.StatusTooManyRequests, "RELAY", "Failed to fetch delivered payloads", "MEV relays may be rate limiting or unavailable")
 		return
 	}
+	// Merge and dedupe by block_hash (same payload can appear on multiple relays)
+	seen := make(map[string]bool)
 	var deliveredPayloads []map[string]any
-	if json.Unmarshal(raw, &deliveredPayloads) != nil {
-		writeErr(w, http.StatusInternalServerError, "RELAY_PARSE", "Failed to parse delivered payloads", "")
-		return
+	for _, raw := range bodies {
+		var list []map[string]any
+		if json.Unmarshal(raw, &list) != nil {
+			continue
+		}
+		for _, b := range list {
+			key := ""
+			if h, ok := b["block_hash"].(string); ok && h != "" {
+				key = h
+			} else {
+				s, bn := b["slot"], b["block_number"]
+				if s != nil || bn != nil {
+					key = fmt.Sprintf("%v-%v", s, bn)
+				}
+			}
+			if key != "" && !seen[key] {
+				seen[key] = true
+				deliveredPayloads = append(deliveredPayloads, b)
+			} else if key == "" {
+				deliveredPayloads = append(deliveredPayloads, b)
+			}
+		}
 	}
 	var latestBlockNum uint64
 	if rawBlockNum, err := eth.Call("eth_blockNumber", []any{}); err == nil {
@@ -94,16 +120,82 @@ func handleRelaysDelivered(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func handleRelaysReceived(w http.ResponseWriter, r *http.Request) {
-	limit := parseLimit(r, 10)
-	raw, err := relay.Get(fmt.Sprintf("/relay/v1/data/bidtraces/builder_blocks_received?limit=%d", limit))
-	if err != nil {
-		writeErr(w, http.StatusTooManyRequests, "RELAY", "Failed to fetch received blocks", "MEV relays may be rate limiting or unavailable")
-		return
+// relayReceivedLimit is the max limit accepted by standard MEV-Boost relay APIs.
+const relayReceivedLimit = 200
+
+func handleRelaysReceived(w http.ResponseWriter, _ *http.Request) {
+	// builder_blocks_received requires a slot parameter on most relays.
+	// Discover a recent slot from delivered payloads first.
+	var allBodies []json.RawMessage
+	var err error
+	if slot, slotErr := relay.RecentSlot(); slotErr == nil && slot != "" {
+		path := fmt.Sprintf("/relay/v1/data/bidtraces/builder_blocks_received?slot=%s&limit=%d", slot, relayReceivedLimit)
+		allBodies, err = relay.GetFromAllRelays(path)
 	}
+	// Merge and dedupe by block_hash (same proposal can appear on multiple relays).
+	seen := make(map[string]bool)
 	var receivedBlocks []map[string]any
-	if json.Unmarshal(raw, &receivedBlocks) != nil {
-		writeErr(w, http.StatusInternalServerError, "RELAY_PARSE", "Failed to parse received blocks", "")
+	if err == nil {
+		for _, body := range allBodies {
+			var batch []map[string]any
+			if json.Unmarshal(body, &batch) != nil {
+				continue
+			}
+			for _, b := range batch {
+				key := ""
+				if h, ok := b["block_hash"].(string); ok && h != "" {
+					key = h
+				} else {
+					s, pk := b["slot"], b["builder_pubkey"]
+					if s != nil || pk != nil {
+						key = fmt.Sprintf("%v-%v", s, pk)
+					}
+				}
+				if key != "" && !seen[key] {
+					seen[key] = true
+					receivedBlocks = append(receivedBlocks, b)
+				} else if key == "" {
+					receivedBlocks = append(receivedBlocks, b)
+				}
+			}
+		}
+	}
+	// Fallback: if received is empty or failed, use delivered payloads so the user sees something.
+	// Many relays expose proposer_payload_delivered; builder_blocks_received may be missing or empty.
+	fallbackDelivered := false
+	if len(receivedBlocks) == 0 {
+		pathDel := fmt.Sprintf("/relay/v1/data/bidtraces/proposer_payload_delivered?limit=%d", relayDeliveredLimit)
+		bodiesDel, errDel := relay.GetFromAllRelays(pathDel)
+		if errDel == nil && len(bodiesDel) > 0 {
+			seenDel := make(map[string]bool)
+			for _, body := range bodiesDel {
+				var batch []map[string]any
+				if json.Unmarshal(body, &batch) != nil {
+					continue
+				}
+				for _, b := range batch {
+					key := ""
+					if h, ok := b["block_hash"].(string); ok && h != "" {
+						key = h
+					} else {
+						s, bn := b["slot"], b["block_number"]
+						if s != nil || bn != nil {
+							key = fmt.Sprintf("%v-%v", s, bn)
+						}
+					}
+					if key != "" && !seenDel[key] {
+						seenDel[key] = true
+						receivedBlocks = append(receivedBlocks, b)
+					} else if key == "" {
+						receivedBlocks = append(receivedBlocks, b)
+					}
+				}
+			}
+			fallbackDelivered = len(receivedBlocks) > 0
+		}
+	}
+	if len(receivedBlocks) == 0 && err != nil {
+		writeErr(w, http.StatusTooManyRequests, "RELAY", "Failed to fetch received blocks", "MEV relays may be rate limiting or unavailable")
 		return
 	}
 	var latestBlockNum uint64
@@ -113,41 +205,39 @@ func handleRelaysReceived(w http.ResponseWriter, r *http.Request) {
 			latestBlockNum, _ = config.ParseHexUint64(blockNumStr)
 		}
 	}
-	writeOK(w, map[string]any{
+	payload := map[string]any{
 		"received_blocks": receivedBlocks,
 		"count":           len(receivedBlocks),
 		"latest_block":    latestBlockNum,
-	})
+	}
+	if fallbackDelivered {
+		payload["fallback_delivered"] = true
+	}
+	writeOK(w, payload)
 }
 
 func handleBeaconHeaders(w http.ResponseWriter, r *http.Request) {
-	type beaconResult struct {
-		raw    json.RawMessage
-		status int
-		err    error
-	}
-	type relayResult struct {
-		raw json.RawMessage
-		err error
-	}
-	beaconCh := make(chan beaconResult, 1)
-	relayCh := make(chan relayResult, 1)
-	go func() {
-		raw, status, err := beacon.Get("/eth/v1/beacon/headers?limit=20")
-		beaconCh <- beaconResult{raw, status, err}
-	}()
-	go func() {
-		raw, err := relay.Get("/relay/v1/data/bidtraces/proposer_payload_delivered?limit=50")
-		relayCh <- relayResult{raw, err}
-	}()
-	br := <-beaconCh
-	rr := <-relayCh
-	headersRaw, status, err := br.raw, br.status, br.err
-	if err != nil || status/100 != 2 {
+	var headersRaw, relayRaw json.RawMessage
+	var beaconStatus int
+	var beaconErr, relayErr error
+
+	g := new(errgroup.Group)
+
+	g.Go(func() error {
+		headersRaw, beaconStatus, beaconErr = beacon.Get("/eth/v1/beacon/headers?limit=20")
+		return nil
+	})
+	g.Go(func() error {
+		relayRaw, relayErr = relay.Get(fmt.Sprintf("/relay/v1/data/bidtraces/proposer_payload_delivered?limit=%d", relayDeliveredLimit))
+		return nil
+	})
+
+	_ = g.Wait()
+
+	if beaconErr != nil || beaconStatus/100 != 2 {
 		writeErr(w, http.StatusTooManyRequests, "BEACON", "Beacon headers fetch failed", "Public beacon API may be rate limiting.")
 		return
 	}
-	relayRaw, relayErr := rr.raw, rr.err
 	var headersObj struct {
 		Data []struct {
 			Header struct {

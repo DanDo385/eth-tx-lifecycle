@@ -339,9 +339,6 @@ export default function Page() {
         )}
       </header>
 
-      {/* Global error display - shows at the top when something goes wrong (excludes tracking errors) */}
-      {error && !trackError ? <Alert title={error.title} message={error.message} hint={error.hint} /> : null}
-
       {/* Step-by-Step Walkthrough Guide */}
       {/* This guide was essential - users didn't know where to start */}
       <div className="my-6 bg-gradient-to-br from-green-500/10 to-cyan-500/10 border border-green-500/30 rounded-lg p-6">
@@ -821,6 +818,12 @@ export default function Page() {
             <Alert title={trackError.title} message={trackError.message} hint={trackError.hint} />
           </div>
         )}
+        {/* Global error display moved under tracker */}
+        {error && !trackError ? (
+          <div className="mt-3">
+            <Alert title={error.title} message={error.message} hint={error.hint} />
+          </div>
+        ) : null}
         {trackDetailsHidden && tracked && (
           <div className="mt-3 p-3 bg-black/20 border border-white/10 rounded-lg text-center">
             <p className="text-white/60 text-sm">Transaction details hidden. Click "Unhide" to view.</p>

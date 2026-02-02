@@ -120,6 +120,84 @@ func Get(path string) (json.RawMessage, error) {
 	return nil, fmt.Errorf("all %d relays failed or timed out", len(relayBases))
 }
 
+// getOne fetches path from a single relay base. Used by GetFromAllRelays; no cache.
+func getOne(base, path string) (json.RawMessage, error) {
+	url := strings.TrimRight(base, "/") + path
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := relayHTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode/100 != 2 {
+		return nil, fmt.Errorf("status %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if len(strings.TrimSpace(string(body))) == 0 {
+		return nil, fmt.Errorf("empty response")
+	}
+	return json.RawMessage(body), nil
+}
+
+// GetFromAllRelays fetches path from every configured relay in parallel and returns all successful
+// responses (one RawMessage per relay). Used to aggregate builder_blocks_received and
+// proposer_payload_delivered across all providers. Does not use cache.
+func GetFromAllRelays(path string) (bodies []json.RawMessage, err error) {
+	type result struct {
+		body json.RawMessage
+		err  error
+	}
+	ch := make(chan result, len(relayBases))
+	for _, base := range relayBases {
+		base := base
+		go func() {
+			body, err := getOne(base, path)
+			ch <- result{body, err}
+		}()
+	}
+	deadline := time.After(relayBudget)
+collect:
+	for i := 0; i < len(relayBases); i++ {
+		select {
+		case r := <-ch:
+			if r.err == nil && r.body != nil {
+				bodies = append(bodies, r.body)
+			}
+		case <-deadline:
+			break collect
+		}
+	}
+	if len(bodies) > 0 {
+		relayHealth.SetSuccess()
+		return bodies, nil
+	}
+	relayHealth.SetError(fmt.Errorf("no relay responded for %s", path))
+	return nil, fmt.Errorf("all %d relays failed or timed out for %s", len(relayBases), path)
+}
+
+// RecentSlot fetches the most recent slot from proposer_payload_delivered.
+// Used to provide the required slot parameter for builder_blocks_received.
+func RecentSlot() (string, error) {
+	raw, err := Get("/relay/v1/data/bidtraces/proposer_payload_delivered?limit=1")
+	if err != nil {
+		return "", err
+	}
+	var entries []struct {
+		Slot string `json:"slot"`
+	}
+	if err := json.Unmarshal(raw, &entries); err != nil || len(entries) == 0 {
+		return "", fmt.Errorf("no slot in delivered response")
+	}
+	return entries[0].Slot, nil
+}
+
 // CheckHealth performs one relay request and returns health status.
 func CheckHealth() pkg.HealthStatus {
 	_, err := Get("/relay/v1/data/bidtraces/proposer_payload_delivered?limit=1")
