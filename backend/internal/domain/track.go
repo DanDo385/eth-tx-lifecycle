@@ -164,18 +164,16 @@ func TrackTx(hash string) (map[string]any, error) {
 					inclusion["neighboring_transactions"] = neighbors
 				}
 				if n, err := config.ParseHexUint64(*t.BlockNumber); err == nil {
-					rawRel, relErr := relay.Get("/relay/v1/data/bidtraces/proposer_payload_delivered?limit=200")
+					// Query relay directly by block number for accurate lookup
+					blockNumStr := strconv.FormatUint(n, 10)
+					rawRel, relErr := relay.Get("/relay/v1/data/bidtraces/proposer_payload_delivered?block_number=" + blockNumStr)
 					if relErr == nil {
 						var entries []map[string]any
-						if json.Unmarshal(rawRel, &entries) == nil {
-							for _, entry := range entries {
-								if bn, ok := entry["block_number"].(string); ok && bn == strconv.FormatUint(n, 10) {
-									resp["pbs_relay"] = map[string]any{
-										"builder_pubkey": entry["builder_pubkey"], "proposer_pubkey": entry["proposer_pubkey"],
-										"value": entry["value"], "relay": entry["relay"],
-									}
-									break
-								}
+						if json.Unmarshal(rawRel, &entries) == nil && len(entries) > 0 {
+							entry := entries[0]
+							resp["pbs_relay"] = map[string]any{
+								"builder_pubkey": entry["builder_pubkey"], "proposer_pubkey": entry["proposer_pubkey"],
+								"value": entry["value"], "relay": entry["relay"],
 							}
 						}
 					}
