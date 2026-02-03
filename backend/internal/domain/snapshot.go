@@ -194,20 +194,36 @@ func BuildSnapshot(limit int, includeSandwich bool, blockTag string) (map[string
 				mevR = snapshotR{"error": "block fetch failed"}
 				return nil
 			}
-			swaps, err := CollectSwaps(b)
+			analysis, err := AnalyzeBlockMEV(b)
 			if err != nil {
-				mevR = snapshotR{"error": "receipt scan failed"}
+				mevR = snapshotR{"error": "mev analysis failed"}
 				return nil
 			}
-			s := DetectSandwiches(swaps, b.Number)
-			if len(s) > limit {
-				s = s[:limit]
+			// Apply limit to sandwiches
+			sandwiches := analysis.Sandwiches
+			if len(sandwiches) > limit {
+				sandwiches = sandwiches[:limit]
 			}
-			sandwiches := make([]snapshotR, len(s))
-			for i, v := range s {
-				sandwiches[i] = snapshotR{"pool": v.Pool, "attacker": v.Attacker, "victim": v.Victim, "preTx": v.PreTx, "victimTx": v.VictimTx, "postTx": v.PostTx, "block": v.Block}
+			// Apply limit to arbitrages
+			arbitrages := analysis.Arbitrages
+			if len(arbitrages) > limit {
+				arbitrages = arbitrages[:limit]
 			}
-			mevR = snapshotR{"block": b.Number, "blockHash": b.Hash, "swapCount": len(swaps), "sandwiches": sandwiches}
+			mevR = snapshotR{
+				"block":            analysis.Block,
+				"blockHash":        analysis.BlockHash,
+				"txScanned":        analysis.TxScanned,
+				"totalTx":          analysis.TotalTx,
+				"swapCount":        analysis.SwapCount,
+				"sandwiches":       sandwiches,
+				"sandwichCount":    analysis.SandwichCount,
+				"arbitrages":       arbitrages,
+				"arbitrageCount":   analysis.ArbitrageCount,
+				"liquidations":     analysis.Liquidations,
+				"liquidationCount": analysis.LiquidationCount,
+				"jitLiquidity":     analysis.JITLiquidity,
+				"jitCount":         analysis.JITCount,
+			}
 			return nil
 		})
 

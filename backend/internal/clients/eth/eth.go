@@ -5,30 +5,53 @@ package eth
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/you/eth-tx-lifecycle-backend/config"
 	"github.com/you/eth-tx-lifecycle-backend/internal/pkg"
 )
 
 var (
-	rpcHTTP       string
+	rpcProviders  []string
 	rpcWS         string
 	rpcHTTPClient *http.Client
 	rpcHealth     *pkg.BaseDataSource
 )
 
 func init() {
-	rpcHTTP = config.EnvOr("RPC_HTTP_URL", "https://eth-mainnet.g.alchemy.com/v2/demo")
+	// Load multiple RPC providers from numbered env vars
+	rpcProviders = []string{}
+	for i := 1; i <= 10; i++ {
+		key := fmt.Sprintf("RPC_HTTP_URL%d", i)
+		if url := config.EnvOr(key, ""); url != "" {
+			rpcProviders = append(rpcProviders, url)
+		}
+	}
+	// Fallback to single RPC_HTTP_URL if no numbered providers
+	if len(rpcProviders) == 0 {
+		if url := config.EnvOr("RPC_HTTP_URL", ""); url != "" {
+			rpcProviders = append(rpcProviders, url)
+		}
+	}
+	// Final fallback to public Alchemy demo
+	if len(rpcProviders) == 0 {
+		rpcProviders = append(rpcProviders, "https://eth-mainnet.g.alchemy.com/v2/demo")
+	}
+
 	rpcWS = config.EnvOr("RPC_WS_URL", "")
-	fmt.Printf("DEBUG: RPC_WS_URL = %s\n", rpcWS)
-	fmt.Printf("DEBUG: MEMPOOL_DISABLE = %s\n", os.Getenv("MEMPOOL_DISABLE"))
+	fmt.Printf("eth: loaded %d RPC providers\n", len(rpcProviders))
+	for i, p := range rpcProviders {
+		fmt.Printf("  [%d] %s\n", i+1, config.SanitizeURL(p))
+	}
+
 	rpcHTTPClient = config.NewHTTPClient("RPC_TIMEOUT_SECONDS", 5*time.Second)
 	rpcHealth = pkg.NewBaseDataSource("rpc", "rpc_health", 30*time.Second)
 }
@@ -55,48 +78,103 @@ type bareError struct {
 	Message string `json:"message"`
 }
 
-// Call invokes an Ethereum JSON-RPC method and returns the raw result.
-func Call(method string, params any) (json.RawMessage, error) {
+// callOne makes a single RPC call to a specific provider URL.
+func callOne(url, method string, params any) (json.RawMessage, error) {
 	payload, _ := json.Marshal(rpcRequest{JSONRPC: "2.0", ID: 1, Method: method, Params: params})
-	res, err := rpcHTTPClient.Post(rpcHTTP, "application/json", bytes.NewReader(payload))
+	res, err := rpcHTTPClient.Post(url, "application/json", bytes.NewReader(payload))
 	if err != nil {
-		rpcHealth.SetError(err)
 		return nil, err
 	}
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
 	var parsed rpcResponse
 	if err := json.Unmarshal(body, &parsed); err != nil {
-		rpcHealth.SetError(err)
 		return nil, err
 	}
 	if parsed.Error != nil {
-		err := errors.New(parsed.Error.Message)
-		rpcHealth.SetError(err)
-		return nil, err
+		return nil, errors.New(parsed.Error.Message)
 	}
-	// Detect non-standard error responses (e.g. Infura rate limits) that lack the
-	// JSON-RPC envelope: {"code":-32005,"message":"Too Many Requests","data":{...}}.
+	// Detect non-standard error responses (e.g. Infura rate limits)
 	if parsed.Result == nil {
 		var bare bareError
 		if json.Unmarshal(body, &bare) == nil && bare.Code != 0 {
-			err := fmt.Errorf("rpc error %d: %s", bare.Code, bare.Message)
+			return nil, fmt.Errorf("rpc error %d: %s", bare.Code, bare.Message)
+		}
+		return nil, errors.New("rpc returned null result")
+	}
+	return parsed.Result, nil
+}
+
+// Call invokes an Ethereum JSON-RPC method, racing all providers in parallel.
+// Returns the first successful response. This provides both redundancy and
+// load distribution across multiple RPC endpoints.
+func Call(method string, params any) (json.RawMessage, error) {
+	if len(rpcProviders) == 1 {
+		// Single provider - direct call
+		result, err := callOne(rpcProviders[0], method, params)
+		if err != nil {
 			rpcHealth.SetError(err)
 			return nil, err
 		}
-		err := errors.New("rpc returned null result")
-		rpcHealth.SetError(err)
-		return nil, err
+		rpcHealth.SetSuccess()
+		return result, nil
 	}
-	rpcHealth.SetSuccess()
-	return parsed.Result, nil
+
+	// Multiple providers - race them all in parallel
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	type rpcResult struct {
+		data json.RawMessage
+		err  error
+		url  string
+	}
+
+	resultCh := make(chan rpcResult, len(rpcProviders))
+	g, gctx := errgroup.WithContext(ctx)
+
+	for _, provider := range rpcProviders {
+		provider := provider
+		g.Go(func() error {
+			result, err := callOne(provider, method, params)
+			select {
+			case resultCh <- rpcResult{data: result, err: err, url: provider}:
+			case <-gctx.Done():
+			}
+			return nil // Don't cancel other goroutines on error
+		})
+	}
+
+	// Collect results - return first success
+	go func() {
+		g.Wait()
+		close(resultCh)
+	}()
+
+	var lastErr error
+	for r := range resultCh {
+		if r.err == nil && r.data != nil {
+			cancel() // Cancel remaining requests
+			rpcHealth.SetSuccess()
+			return r.data, nil
+		}
+		lastErr = r.err
+	}
+
+	// All providers failed
+	if lastErr == nil {
+		lastErr = errors.New("all RPC providers failed or timed out")
+	}
+	rpcHealth.SetError(lastErr)
+	return nil, lastErr
 }
 
 // CheckHealth performs one RPC call and returns health status.
 func CheckHealth() pkg.HealthStatus {
 	_, err := Call("eth_blockNumber", []any{})
-	rpcHealth.SetError(err)
-	if err == nil {
+	if err != nil {
+		rpcHealth.SetError(err)
+	} else {
 		rpcHealth.SetSuccess()
 	}
 	return pkg.StatusFromSource(rpcHealth)
@@ -104,5 +182,13 @@ func CheckHealth() pkg.HealthStatus {
 
 // SourceInfo returns sanitized RPC URLs for the UI.
 func SourceInfo() (httpURL, wsURL string) {
-	return config.SanitizeURL(rpcHTTP), config.SanitizeURL(rpcWS)
+	// Return first provider as primary, indicate multiple if available
+	primary := ""
+	if len(rpcProviders) > 0 {
+		primary = config.SanitizeURL(rpcProviders[0])
+		if len(rpcProviders) > 1 {
+			primary = fmt.Sprintf("%s (+%d more)", primary, len(rpcProviders)-1)
+		}
+	}
+	return primary, config.SanitizeURL(rpcWS)
 }

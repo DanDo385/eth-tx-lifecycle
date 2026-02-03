@@ -307,7 +307,7 @@ func handleBlock(w http.ResponseWriter, r *http.Request) {
 	w.Write(raw)
 }
 
-func handleSandwich(w http.ResponseWriter, r *http.Request) {
+func handleMEV(w http.ResponseWriter, r *http.Request) {
 	blockTag := r.URL.Query().Get("block")
 	if blockTag == "" {
 		blockTag = "latest"
@@ -323,17 +323,28 @@ func handleSandwich(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, status, "EL_BLOCK_FETCH", "Failed to fetch block: "+err.Error(), hint)
 		return
 	}
-	swaps, err := domain.CollectSwaps(b)
+	analysis, err := domain.AnalyzeBlockMEV(b)
 	if err != nil {
-		writeErr(w, http.StatusInternalServerError, "EL_RECEIPTS", "Failed to scan receipts", "")
+		writeErr(w, http.StatusInternalServerError, "MEV_ANALYSIS", "Failed to analyze block for MEV", "")
 		return
 	}
-	sandwiches := domain.DetectSandwiches(swaps, b.Number)
 	httpURL, wsURL := eth.SourceInfo()
 	writeOK(w, map[string]any{
-		"block": b.Number, "blockHash": b.Hash, "swapCount": len(swaps), "sandwiches": sandwiches,
-		"sources": map[string]any{"rpc_http": httpURL, "rpc_ws": wsURL, "beacon_api": beacon.SourceInfo(), "relays": relay.SourceInfo()},
-		"note":    "Heuristic: same address swaps before and after a victim in the same pool (Uniswap V2/V3).",
+		"block":            analysis.Block,
+		"blockHash":        analysis.BlockHash,
+		"txScanned":        analysis.TxScanned,
+		"totalTx":          analysis.TotalTx,
+		"swapCount":        analysis.SwapCount,
+		"sandwiches":       analysis.Sandwiches,
+		"sandwichCount":    analysis.SandwichCount,
+		"arbitrages":       analysis.Arbitrages,
+		"arbitrageCount":   analysis.ArbitrageCount,
+		"liquidations":     analysis.Liquidations,
+		"liquidationCount": analysis.LiquidationCount,
+		"jitLiquidity":     analysis.JITLiquidity,
+		"jitCount":         analysis.JITCount,
+		"sources":          map[string]any{"rpc_http": httpURL, "rpc_ws": wsURL, "beacon_api": beacon.SourceInfo(), "relays": relay.SourceInfo()},
+		"note":             "MEV detection: sandwiches (frontrun+backrun), arbitrage (multi-pool swaps), liquidations (Aave/Compound), JIT liquidity (mint→swap→burn).",
 	})
 }
 
@@ -458,7 +469,7 @@ func Run() error {
 	mux.HandleFunc("/api/finality", handleFinality)
 	mux.HandleFunc("/api/snapshot", handleSnapshot)
 	mux.HandleFunc("/api/block/", handleBlock)
-	mux.HandleFunc("/api/mev/sandwich", handleSandwich)
+	mux.HandleFunc("/api/mev/sandwich", handleMEV)
 	mux.HandleFunc("/api/track/tx/", handleTrackTx)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/health/live", handleHealthLiveness)
