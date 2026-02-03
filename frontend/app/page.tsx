@@ -15,7 +15,7 @@ import BuilderRelayView from "./components/BuilderRelayView";
 import RelayDeliveredView from "./components/RelayDeliveredView";
 import BeaconHeadersView from "./components/BeaconHeadersView";
 import FinalityView from "./components/FinalityView";
-import SandwichView from "./components/SandwichView";
+import MEVView from "./components/MEVView";
 import { weiToEth, formatNumber } from "./utils/format";
 
 // Type aliases to make the code more readable
@@ -431,7 +431,7 @@ export default function Page() {
               <div className="flex-1">
                 <h4 className="font-semibold text-white mb-2">Detect MEV Attacks</h4>
                 <p className="text-white/80 leading-relaxed">
-                  Click <strong className="text-orange-400">"6) Sandwich detector"</strong> and enter a block number (or use "latest").
+                  Click <strong className="text-orange-400">"6) MEV detector"</strong> and enter a block number (or use "latest").
                   This scans for sandwich attacks - a type of frontrunning where traders profit at victims' expense.
                 </p>
                 <p className="mt-2 text-xs text-orange-300 bg-orange-500/10 p-2 rounded">
@@ -545,7 +545,7 @@ export default function Page() {
         </GlowButton>
 
         <GlowButton
-          ariaLabel="Toggle sandwich detector"
+          ariaLabel="Toggle MEV detector"
           onClick={async () => {
             if (activePanel === "mev") {
               setActivePanel(null);
@@ -558,7 +558,7 @@ export default function Page() {
           }}
           className={activePanel === "mev" ? "ring-2 ring-blue-500" : ""}
         >
-          6) Sandwich detector
+          6) MEV detector
         </GlowButton>
       </div>
 
@@ -718,9 +718,9 @@ export default function Page() {
         </Panel>
       )}
 
-      {/* MEV sandwich detector panel - this is the fun one! */}
+      {/* MEV detector panel - this is the fun one! */}
       {activePanel === "mev" && (
-        <Panel id="panel-sandwich" title="MEV: Sandwich detector (Uniswap V2/V3 heuristic)">
+        <Panel id="panel-mev" title="MEV detector (sandwiches, arbitrage, liquidations, JIT)">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="md:w-2/3 text-white/70">
               Scans a block for swaps where the same address wraps a victim trade in the same pool. Attackers are tinted
@@ -744,13 +744,13 @@ export default function Page() {
               }}>
                 Analyze
               </GlowButton>
-              <CaptureButton targetId="panel-sandwich" />
+              <CaptureButton targetId="panel-mev" />
             </div>
           </div>
           <div className="mb-3 text-xs text-white/60">
             RPC (block/receipts): {mev?.data?.sources?.rpc_http || sources?.rpc_http || 'unset'}
           </div>
-          {mev?.data ? <SandwichView data={mev.data} /> : <p className="text-white/60">Run an analysis with the button above.</p>}
+          {mev?.data ? <MEVView data={mev.data} /> : <p className="text-white/60">Run an analysis with the button above.</p>}
         </Panel>
       )}
 

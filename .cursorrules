@@ -31,7 +31,7 @@ The system consists of a Go backend and a Next.js frontend that work together to
   - `mempool.go` — Pending tx monitoring via HTTP polling; `GetData()`, `Start()`, `CheckHealth()`.
   - `track.go` — Transaction lifecycle (`TrackTx`); supports "latest"; uses eth, beacon, relay, txdecode.
   - `txdecode.go` — Transaction input decoder (`DecodeTransactionInput`); swaps, transfers, approvals, mints, claims, etc.; uses receipt Transfer events to reclassify unknown methods.
-  - `sandwich.go` — MEV sandwich detection (Uniswap V2/V3 Swap heuristics); `FetchBlockFull`, `CollectSwaps`, `DetectSandwiches`; bounded worker pool for receipts.
+  - `mev.go` — MEV detection (sandwiches, arbitrage, liquidations, JIT liquidity); `FetchBlockFull`, `CollectMEVEvents`, `AnalyzeBlockMEV`; bounded worker pool for receipts.
   - `snapshot.go` — Aggregated data (`BuildSnapshot`, `LogSnapshot`, `SnapshotTTL`); orchestrates mempool, relay, beacon, optional MEV.
 
 - **internal/server/** — HTTP API: `server.go` — CORS, route definitions, handlers; `writeOK()`/`writeErr()`, `eduEnvelope`; calls config, pkg, clients (eth, beacon, relay), domain.
@@ -45,7 +45,7 @@ The system consists of a Go backend and a Next.js frontend that work together to
   - `RelayDeliveredView.tsx` - Winning blocks delivered to validators
   - `BeaconHeadersView.tsx` - Proposed blocks with builder payments
   - `FinalityView.tsx` - Casper-FFG finality checkpoints
-  - `SandwichView.tsx` - MEV sandwich attack detection results
+  - `MEVView.tsx` - MEV detection results (sandwiches, arbitrage, liquidations, JIT liquidity)
   - `Glossary.tsx` - Interactive glossary (40+ terms, 5 categories)
   - `MermaidDiagram.tsx` - Transaction flow visualization
   - `MetricCard.tsx`, `Panel.tsx`, `GlowButton.tsx`, `Alert.tsx`, `ProgressBar.tsx`, `CaptureButton.tsx` - Reusable UI components
@@ -62,7 +62,7 @@ The system consists of a Go backend and a Next.js frontend that work together to
 - Config: use `config` package (`EnvOr`, `LoadEnvFile`, `ParseHexUint64`, `ParseHexBigInt`, `NewHTTPClient`, `SanitizeURL`, `RedactAPIKey`).
 - Caching: use `pkg.Cache[V]` and `pkg.NewCache` (internal/pkg) — avoid custom cache implementations.
 - Use goroutines with channels for parallel API calls (e.g. server `handleBeaconHeaders`, domain snapshot).
-- Worker pools: bounded semaphore pattern in domain/sandwich (`CollectSwaps`).
+- Worker pools: bounded semaphore pattern in domain/mev (`CollectMEVEvents`).
 - Health: update `pkg.BaseDataSource` (`SetSuccess()`/`SetError()`) in clients and domain after external calls.
 
 ### Frontend
@@ -120,8 +120,8 @@ Config lives in `.env.local` at repo root. Key variables:
 - `CACHE_TTL_SECONDS` - Cache TTL for successful upstream responses
 - `ERROR_CACHE_TTL_SECONDS` - Cache TTL for upstream failures
 - `SNAPSHOT_TTL_SECONDS` - SnapshotTTL helper (server snapshot cache currently uses 30s default)
-- `SANDWICH_MAX_TX` - Max transactions to scan per block (default `120`)
-- `SANDWICH_WORKERS` - Parallel receipt fetch workers (default `10`)
+- `MEV_MAX_TX` - Max transactions to scan per block for MEV detection (default `400`)
+- `MEV_WORKERS` - Parallel receipt fetch workers (default `10`)
 - `PROXY_MODE` - Set to `route` for server-side API proxy
 - `MEMPOOL_DISABLE` - Set to `true` for mock mempool data
 
@@ -138,7 +138,7 @@ Config lives in `.env.local` at repo root. Key variables:
 
 ### Tracking & Analysis
 - `GET /api/track/tx/{hash}` - Transaction lifecycle (supports "latest")
-- `GET /api/mev/sandwich?block={id}` - Sandwich detection
+- `GET /api/mev/sandwich?block={id}` - MEV detection (sandwiches, arbitrage, liquidations, JIT)
 
 ### Health
 - `GET /api/health` - Detailed health of all data sources

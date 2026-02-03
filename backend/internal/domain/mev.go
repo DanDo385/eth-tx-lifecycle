@@ -132,7 +132,7 @@ var (
 
 func init() {
 	mevMaxTx = 400
-	if s := config.EnvOr("SANDWICH_MAX_TX", "400"); s != "" {
+	if s := config.EnvOr("MEV_MAX_TX", "400"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil {
 			if n < 10 {
 				n = 10
@@ -144,7 +144,7 @@ func init() {
 		}
 	}
 	mevWorkers = 10
-	if s := config.EnvOr("SANDWICH_WORKERS", "10"); s != "" {
+	if s := config.EnvOr("MEV_WORKERS", "10"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n >= 1 {
 			if n > 50 {
 				n = 50

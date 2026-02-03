@@ -11,7 +11,7 @@ This is **eth-tx-lifecycle** - an educational Ethereum visualization tool design
 - Step-by-step walkthrough explaining each visualization panel
 - Real-world analogies (post office, concert tickets, banks)
 - Detailed explanations of gas economics, MEV, validator earnings, and finality
-- Live MEV sandwich attack detection with victim/attacker visualization
+- Live MEV detection (sandwiches, arbitrage, liquidations, JIT liquidity) with victim/attacker visualization
 - Human-readable transaction tracking across execution and consensus layers
 
 The system consists of a Go backend and a Next.js frontend that work together to fetch and display real-time Ethereum data with extensive educational commentary.
@@ -35,7 +35,7 @@ The Go backend uses a consolidated layout: config outside internal, then four in
   - `eth/` — JSON-RPC client (`Call`, `CheckHealth`, `SourceInfo`).
   - `beacon/` — Beacon REST client (`Get`, `CheckHealth`, `SourceInfo`).
   - `relay/` — MEV relay client (`Get`, `CheckHealth`, `SourceInfo`); negative caching.
-- **internal/domain/:** Feature logic (one package, multiple files): `mempool.go` (pending tx polling; `GetData`, `Start`, `CheckHealth`), `track.go` (transaction lifecycle `TrackTx`; supports "latest"), `txdecode.go` (input decoder `DecodeTransactionInput`), `sandwich.go` (MEV sandwich detection; `FetchBlockFull`, `CollectSwaps`, `DetectSandwiches`), `snapshot.go` (aggregated data `BuildSnapshot`, `LogSnapshot`).
+- **internal/domain/:** Feature logic (one package, multiple files): `mempool.go` (pending tx polling; `GetData`, `Start`, `CheckHealth`), `track.go` (transaction lifecycle `TrackTx`; supports "latest"), `txdecode.go` (input decoder `DecodeTransactionInput`), `mev.go` (MEV detection: sandwiches, arbitrage, liquidations, JIT liquidity; `FetchBlockFull`, `CollectMEVEvents`, `AnalyzeBlockMEV`), `snapshot.go` (aggregated data `BuildSnapshot`, `LogSnapshot`).
 - **internal/server/:** `server.go` — HTTP server, CORS, routes, handlers; `writeOK`/`writeErr`, `eduEnvelope`; calls config, pkg, clients, domain.
 
 ### Frontend Structure
@@ -50,7 +50,7 @@ The Next.js app uses the App Router pattern with extensive educational component
   - `RelayDeliveredView.tsx`: Winning blocks delivered to validators
   - `BeaconHeadersView.tsx`: Proposed blocks with builder payments and validator earnings
   - `FinalityView.tsx`: Casper-FFG finality checkpoints with health status
-  - `SandwichView.tsx`: MEV sandwich attack detection with step-by-step explanations
+  - `MEVView.tsx`: MEV detection results (sandwiches, arbitrage, liquidations, JIT liquidity)
   - `MermaidDiagram.tsx`: Transaction flow visualization
 - `app/utils/format.ts`: Data formatting utilities (hex→decimal, wei→ETH, gwei conversions, hash shortening)
 - `frontend/app/api/[...path]/route.ts`: API proxy to Go backend
@@ -101,7 +101,7 @@ Configuration is handled through `.env.local` at the repository root. Key variab
 ## Key Dependencies
 
 ### Go Dependencies
-- `golang.org/x/crypto`: Keccak (sha3) for MEV sandwich topic hashing in `internal/domain/sandwich.go`
+- `golang.org/x/crypto`: Keccak (sha3) for MEV event topic hashing in `internal/domain/mev.go`
 - Otherwise standard library; mempool uses HTTP polling via `internal/clients/eth`, not WebSocket
 
 ### Frontend Dependencies
@@ -122,7 +122,7 @@ The backend exposes these educational endpoints:
 - `GET /api/validators/head`: Beacon chain block headers enriched with builder payments and MEV-Boost metadata
 - `GET /api/finality`: Casper-FFG finality checkpoints with justification and finalization status
 - `GET /api/track/tx/{hash}`: Complete transaction lifecycle tracking (mempool → block → finality)
-- `GET /api/mev/sandwich?block={id}`: MEV sandwich attack detection for specific block ("latest" or block number)
+- `GET /api/mev/sandwich?block={id}`: MEV detection for specific block - sandwiches, arbitrage, liquidations, JIT liquidity ("latest" or block number)
 - `GET /api/snapshot`: Aggregated data from all sources with caching
 
 ## Common Development Patterns
@@ -144,7 +144,7 @@ The backend uses HTTP polling for mempool (no WebSocket) and TTL caching for exp
 ### Frontend State Management
 
 The main application uses React state with useEffect hooks for data fetching:
-- Each panel (mempool, builder relay, delivered, headers, finality, sandwich) has dedicated state
+- Each panel (mempool, builder relay, delivered, headers, finality, mev) has dedicated state
 - Data is fetched from the backend and transformed using `app/utils/format.ts` utilities
 - Educational components include summary metrics, detailed explanations, and human-readable tables
 - All monetary values converted from wei/gwei to ETH, all hex values converted to decimal

@@ -11,7 +11,7 @@ Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows 
 - **MEV (Maximal Extractable Value)** - How professional traders profit from transaction ordering
 - **Validator economics** - How block proposers earn money
 - **Blockchain security** - How Ethereum makes transactions irreversible
-- **Real MEV attacks** - Actual sandwich attacks happening on the network right now
+- **Real MEV activity** - Sandwiches, arbitrage, liquidations, JIT liquidity happening on the network right now
 
 ## Features
 
@@ -26,7 +26,7 @@ Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows 
 - **Real-Time Data** - Live transactions, blocks, and validator data from Ethereum mainnet
 - **Transaction Tracking** - Follow any transaction hash (or enter "latest") through its complete lifecycle
 - **Smart Transaction Decoding** - Identifies swaps, transfers, approvals, mints, claims, and contract calls using receipt analysis
-- **MEV Detection** - Scan blocks for sandwich attacks using Uniswap V2/V3 heuristics with parallel receipt fetching
+- **MEV Detection** - Scan blocks for sandwiches, arbitrage, liquidations, and JIT liquidity using parallel receipt fetching
 - **Builder Competition** - See multiple builders bidding for the same block slot
 - **Finality Monitoring** - Watch Casper-FFG checkpoints in action
 
@@ -136,12 +136,13 @@ Click **"5) Finality checkpoints"** to see how transactions become permanent and
 - Economic security ($30+ billion to reverse finalized blocks)
 
 ### Step 6: Detect MEV Attacks
-Click **"6) Sandwich detector"** and enter "latest" or a specific block number to scan for attacks.
+Click **"6) MEV detector"** and enter "latest" or a specific block number to scan for attacks.
 
 **What you'll see:**
-- Real sandwich attacks where traders lost money
-- Front-run -> Victim -> Back-run transaction sequences
-- Attacker addresses and victim addresses
+- Sandwich attacks where traders lost money (front-run → victim → back-run)
+- Arbitrage transactions (multi-pool atomic swaps)
+- Liquidations on Aave/Compound lending protocols
+- JIT liquidity (just-in-time mint → swap → burn patterns)
 
 ## Architecture
 
@@ -162,7 +163,7 @@ Click **"6) Sandwich detector"** and enter "latest" or a specific block number t
 |                                                            |
 |  - Parallel data fetching with goroutines                  |
 |  - Generic TTL cache (beacon, relay, snapshot)             |
-|  - Worker pool for receipt scanning (sandwich detection)   |
+|  - Worker pool for receipt scanning (MEV detection)        |
 |  - Transaction lifecycle tracking with receipt analysis    |
 |  - Health monitoring (liveness + readiness probes)         |
 +----+----------+----------+-----------+--------------------+
@@ -204,7 +205,7 @@ eth-tx-lifecycle/
 │   │   │   ├── mempool.go             # Mempool polling + metrics
 │   │   │   ├── track.go               # Transaction lifecycle tracking
 │   │   │   ├── txdecode.go            # Transaction input decoder
-│   │   │   ├── sandwich.go            # MEV sandwich detection
+│   │   │   ├── mev.go                 # MEV detection (sandwiches, arbitrage, liquidations, JIT)
 │   │   │   └── snapshot.go            # Aggregated snapshot data
 │   │   └── pkg/
 │   │       ├── cache.go               # Generic TTL cache
@@ -223,7 +224,7 @@ eth-tx-lifecycle/
 │   │   │   ├── RelayDeliveredView.tsx # Winning blocks display
 │   │   │   ├── BeaconHeadersView.tsx  # Block proposals & validator earnings
 │   │   │   ├── FinalityView.tsx       # Casper-FFG finality checkpoints
-│   │   │   ├── SandwichView.tsx       # MEV attack detection results
+│   │   │   ├── MEVView.tsx            # MEV detection results (sandwiches, arbs, liquidations, JIT)
 │   │   │   ├── Glossary.tsx           # Interactive glossary (40+ terms)
 │   │   │   ├── MermaidDiagram.tsx     # Transaction flow diagram
 │   │   │   ├── MetricCard.tsx         # Reusable metric display card
@@ -271,7 +272,7 @@ eth-tx-lifecycle/
 | Endpoint | Description |
 |----------|-------------|
 | `GET /api/track/tx/{hash}` | Complete transaction lifecycle (supports "latest") |
-| `GET /api/mev/sandwich?block={id}` | MEV sandwich detection for a block |
+| `GET /api/mev/sandwich?block={id}` | MEV detection (sandwiches, arbitrage, liquidations, JIT) |
 
 ### Health
 | Endpoint | Description |
@@ -311,9 +312,9 @@ CACHE_TTL_SECONDS=30
 ERROR_CACHE_TTL_SECONDS=15
 SNAPSHOT_TTL_SECONDS=30      # Used by SnapshotTTL helper
 
-# Sandwich Detection
-SANDWICH_MAX_TX=120          # Max transactions to scan per block
-SANDWICH_WORKERS=10          # Parallel receipt fetch workers
+# MEV Detection
+MEV_MAX_TX=400               # Max transactions to scan per block
+MEV_WORKERS=10               # Parallel receipt fetch workers
 
 # Mempool
 MEMPOOL_DISABLE=false        # Set to true/1 for mock data
