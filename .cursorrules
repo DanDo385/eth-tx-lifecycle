@@ -10,7 +10,7 @@ The system consists of a Go backend and a Next.js frontend that work together to
 
 - **Go Backend** (`backend/`): Handles all Ethereum data fetching, processing, and API endpoints. Uses goroutines for parallel data fetching and a generic TTL cache shared across modules.
 - **Next.js Frontend** (`frontend/`): React application with TypeScript, Tailwind CSS, and interactive visualizations. Uses App Router pattern.
-- **Data Sources**: Public APIs (Alchemy JSON-RPC, Beaconcha.in, Flashbots relay) - no local blockchain sync required.
+- **Data Sources**: Public APIs (Alchemy/Infura JSON-RPC, Beacon API such as Prysm/PublicNode, MEV relays like Flashbots) - no local blockchain sync required.
 
 ## Backend Structure (refactored)
 
@@ -51,6 +51,7 @@ The system consists of a Go backend and a Next.js frontend that work together to
   - `MetricCard.tsx`, `Panel.tsx`, `GlowButton.tsx`, `Alert.tsx`, `ProgressBar.tsx`, `CaptureButton.tsx` - Reusable UI components
 - `app/utils/format.ts` - Data formatting (hex to decimal, wei to ETH, gwei conversions, hash shortening)
 - `app/api/[...path]/route.ts` - Conditional API proxy; only active when `PROXY_MODE=route` (for Railway/Vercel); otherwise falls through to `next.config.mjs` rewrites
+- `app/api/test/route.ts` - Simple test route to confirm API routes are working
 - Styling: Tailwind CSS with dark theme and gradient accents
 
 ## Key Conventions
@@ -107,12 +108,18 @@ cd frontend && npm run build
 Config lives in `.env.local` at repo root. Key variables:
 
 - `RPC_HTTP_URL` - Ethereum JSON-RPC endpoint (defaults to public Alchemy)
+- `RPC_WS_URL` - Optional WS endpoint (used for source info)
+- `RPC_TIMEOUT_SECONDS` - RPC client timeout (seconds, default 5)
 - `BEACON_API_URL` - Beacon chain API endpoint
+- `UPSTREAM_TIMEOUT_SECONDS` - Beacon/relay HTTP timeout (seconds, default 3)
 - `RELAY_URLS` - Comma-separated MEV relay endpoints
+- `RELAY_BUDGET_MS` - Relay fan-out budget (milliseconds, default 2500)
 - `GOAPI_ADDR` - Backend listen address (default `:8080`)
-- `GOAPI_ORIGIN` - Backend origin for CORS (default `http://localhost:8080`)
+- `GOAPI_ORIGIN` - Frontend uses as backend origin for rewrites/proxy (default `http://localhost:8080`); backend uses as CORS allow-origin (default `http://localhost:3000`)
 - `WEB_PORT` - Frontend port (default `3000`)
-- `CACHE_TTL_SECONDS` / `SNAPSHOT_TTL_SECONDS` - Cache TTLs
+- `CACHE_TTL_SECONDS` - Cache TTL for successful upstream responses
+- `ERROR_CACHE_TTL_SECONDS` - Cache TTL for upstream failures
+- `SNAPSHOT_TTL_SECONDS` - SnapshotTTL helper (server snapshot cache currently uses 30s default)
 - `SANDWICH_MAX_TX` - Max transactions to scan per block (default `120`)
 - `SANDWICH_WORKERS` - Parallel receipt fetch workers (default `10`)
 - `PROXY_MODE` - Set to `route` for server-side API proxy

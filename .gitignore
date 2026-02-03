@@ -63,7 +63,9 @@ Thumbs.db
 # TypeScript incremental build info
 *.tsbuildinfo
 
-# Local Go build artifacts
+# Local Go build artifacts (binary in backend/bin/ or legacy paths)
+/backend/bin/
+/backend/eth-tx-lifecycle
 /backend/eth-tx-lifecycle-backend
 /backend/backend
 /backend/test-api

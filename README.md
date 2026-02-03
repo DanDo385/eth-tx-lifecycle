@@ -31,7 +31,7 @@ Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows 
 - **Finality Monitoring** - Watch Casper-FFG checkpoints in action
 
 ### Technical
-- **No Local Node Required** - Uses public APIs (Alchemy, Beaconcha.in, Flashbots)
+- **No Local Node Required** - Uses public APIs (Alchemy/Infura JSON-RPC, Beacon API, MEV relays like Flashbots)
 - **Parallel Data Fetching** - Goroutines with bounded worker pools for fast API responses
 - **Generic TTL Cache** - Shared cache implementation across all data sources
 - **Responsive Design** - Works on desktop, tablet, mobile
@@ -169,8 +169,8 @@ Click **"6) Sandwich detector"** and enter "latest" or a specific block number t
      |          |          |           |
      v          v          v           v
 +---------+ +--------+ +---------+ +--------------+
-| Alchemy | |Beaconch| |Flashbots| | Other Relays |
-|   RPC   | | a.in   | |  Relay  | |              |
+| RPC API | | Beacon | |Flashbots| | Other Relays |
+|  (EL)   | |  API   | |  Relay  | |              |
 +---------+ +--------+ +---------+ +--------------+
 ```
 
@@ -190,26 +190,33 @@ eth-tx-lifecycle/
 │   ├── cmd/
 │   │   └── eth-tx-lifecycle/
 │   │       └── main.go                # Service entrypoint
+│   ├── config/
+│   │   └── config.go                  # Env + shared helpers
 │   ├── internal/
-│   │   ├── server.go                  # HTTP routes & request handlers
-│   │   ├── eth_rpc.go                 # Ethereum JSON-RPC client
-│   │   ├── mempool_ws.go              # Mempool monitoring (HTTP polling)
-│   │   ├── relay.go                   # MEV relay client (Flashbots, etc.)
-│   │   ├── beacon.go                  # Beacon chain consensus client
-│   │   ├── track_tx.go                # Transaction lifecycle tracking
-│   │   ├── tx_decoder.go              # Transaction input decoder (swap, transfer, etc.)
-│   │   ├── sandwich.go                # MEV sandwich detection (parallel worker pool)
-│   │   ├── snapshot.go                # Data aggregation endpoint
-│   │   ├── cache.go                   # Generic TTL cache (Cache[V any])
-│   │   ├── helpers.go                 # Shared utilities (hex parsing, env, HTTP clients)
-│   │   └── health.go                  # Health monitoring & BaseDataSource type
+│   │   ├── run.go                     # backend.Run entrypoint
+│   │   ├── server/
+│   │   │   └── server.go              # HTTP routes & request handlers
+│   │   ├── clients/
+│   │   │   ├── eth/eth.go             # Ethereum JSON-RPC client
+│   │   │   ├── beacon/beacon.go       # Beacon chain REST client
+│   │   │   └── relay/relay.go         # MEV relay client
+│   │   ├── domain/
+│   │   │   ├── mempool.go             # Mempool polling + metrics
+│   │   │   ├── track.go               # Transaction lifecycle tracking
+│   │   │   ├── txdecode.go            # Transaction input decoder
+│   │   │   ├── sandwich.go            # MEV sandwich detection
+│   │   │   └── snapshot.go            # Aggregated snapshot data
+│   │   └── pkg/
+│   │       ├── cache.go               # Generic TTL cache
+│   │       └── health.go              # Health monitoring helpers
 │   ├── go.mod
 │   └── go.sum
 │
 ├── frontend/                          # Next.js frontend
 │   ├── app/
 │   │   ├── page.tsx                   # Main application with intro & guides
-│   │   ├── layout.tsx                 # Root layout & global styles
+│   │   ├── layout.tsx                 # Root layout
+│   │   ├── globals.css                # Global styles
 │   │   ├── components/
 │   │   │   ├── TransactionView.tsx    # Human-readable transaction display
 │   │   │   ├── BuilderRelayView.tsx   # Builder competition visualization
@@ -220,21 +227,22 @@ eth-tx-lifecycle/
 │   │   │   ├── Glossary.tsx           # Interactive glossary (40+ terms)
 │   │   │   ├── MermaidDiagram.tsx     # Transaction flow diagram
 │   │   │   ├── MetricCard.tsx         # Reusable metric display card
-│   │   │   ├── Panel.tsx              # Collapsible panel wrapper
+│   │   │   ├── Panel.tsx              # Panel wrapper
 │   │   │   ├── GlowButton.tsx         # Styled button component
 │   │   │   ├── Alert.tsx              # Alert/notification component
 │   │   │   ├── ProgressBar.tsx        # Progress bar component
 │   │   │   └── CaptureButton.tsx      # Screenshot capture button
 │   │   ├── api/
-│   │   │   └── [...path]/route.ts     # Conditional API proxy to Go backend
+│   │   │   ├── [...path]/route.ts     # Conditional API proxy to Go backend
+│   │   │   └── test/route.ts          # Test route to verify API routing
 │   │   ├── utils/
-│   │   │   └── format.ts             # Data formatting (hex->decimal, wei->ETH)
-│   │   ├── globals.css                # Global styles
-│   │   └── layout.tsx                 # Root layout
+│   │   │   └── format.ts              # Data formatting (hex->decimal, wei->ETH)
 │   ├── next.config.mjs                # Next.js config with API rewrites
 │   ├── tailwind.config.ts             # Tailwind CSS configuration
 │   ├── tsconfig.json                  # TypeScript configuration
-│   └── package.json                   # Frontend dependencies
+│   ├── package.json                   # Frontend dependencies
+│   └── public/
+│       └── favicon.ico
 │
 ├── scripts/
 │   ├── start-backend.sh               # Compile and start backend server
@@ -279,23 +287,29 @@ The application uses `.env.local` at the repository root. Key variables:
 ```bash
 # Ethereum RPC (execution layer)
 RPC_HTTP_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
+RPC_WS_URL=wss://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
 RPC_TIMEOUT_SECONDS=5
 
 # Beacon API (consensus layer)
-BEACON_API_URL=https://beaconcha.in/api/v1
+BEACON_API_URL=https://beacon.prylabs.net
 UPSTREAM_TIMEOUT_SECONDS=3
 
 # MEV Relays (comma-separated)
 RELAY_URLS=https://boost-relay.flashbots.net,https://agnostic-relay.net
+RELAY_BUDGET_MS=2500
 
-# Server Configuration
+# Server / Frontend
 GOAPI_ADDR=:8080
-GOAPI_ORIGIN=http://localhost:8080
 WEB_PORT=3000
+GOAPI_ORIGIN=http://localhost:8080
+
+# Frontend Proxy (for Railway/Vercel deployments)
+PROXY_MODE=                  # Set to "route" for server-side proxy
 
 # Caching
 CACHE_TTL_SECONDS=30
-SNAPSHOT_TTL_SECONDS=30
+ERROR_CACHE_TTL_SECONDS=15
+SNAPSHOT_TTL_SECONDS=30      # Used by SnapshotTTL helper
 
 # Sandwich Detection
 SANDWICH_MAX_TX=120          # Max transactions to scan per block
@@ -303,12 +317,9 @@ SANDWICH_WORKERS=10          # Parallel receipt fetch workers
 
 # Mempool
 MEMPOOL_DISABLE=false        # Set to true/1 for mock data
-
-# Frontend Proxy (for Railway/Vercel deployments)
-PROXY_MODE=                  # Set to "route" for server-side proxy
 ```
 
-**Note**: The default public endpoints work for learning. You only need to change these if you want to use your own API keys or local nodes.
+**Note**: `GOAPI_ORIGIN` is used by the Next.js proxy target and by the Go backend for CORS allow-origin (backend default is `http://localhost:3000` if unset). The default public endpoints work for learning; change them only if you want to use your own API keys or local nodes.
 
 ## Troubleshooting
 
@@ -367,7 +378,7 @@ This tool is for learning purposes. Not financial advice. Use at your own risk.
 - **Ethereum Foundation** - For building this technology
 - **Flashbots** - For MEV research and transparency
 - **Alchemy** - For public RPC endpoints
-- **Beaconcha.in** - For beacon chain API access
+- **Beacon API providers (Prysm, PublicNode, Beaconcha.in)** - For beacon chain API access
 
 ---
 

@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -313,7 +314,13 @@ func handleSandwich(w http.ResponseWriter, r *http.Request) {
 	}
 	b, err := domain.FetchBlockFull(blockTag)
 	if err != nil {
-		writeErr(w, http.StatusInternalServerError, "EL_BLOCK_FETCH", "Failed to fetch block", "")
+		status := http.StatusInternalServerError
+		hint := ""
+		if strings.Contains(err.Error(), "Too Many Requests") || strings.Contains(err.Error(), "-32005") {
+			status = http.StatusTooManyRequests
+			hint = "RPC provider is rate limiting. Wait a moment and try again, or use a dedicated RPC endpoint."
+		}
+		writeErr(w, status, "EL_BLOCK_FETCH", "Failed to fetch block: "+err.Error(), hint)
 		return
 	}
 	swaps, err := domain.CollectSwaps(b)

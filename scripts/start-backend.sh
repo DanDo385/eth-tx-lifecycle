@@ -26,9 +26,10 @@ ADDR_TO_USE=${GOAPI_ADDR:-:8080}
 
 cd "$REPO_ROOT/backend"
 
-# Build the binary first
+# Build the binary into backend/bin/ (keeps executables separate from source)
+mkdir -p "$REPO_ROOT/backend/bin"
 echo "Compiling backend..."
-go build -o "$REPO_ROOT/.pids/eth-tx-lifecycle-backend" ./cmd/eth-tx-lifecycle
+go build -o "$REPO_ROOT/backend/bin/eth-tx-lifecycle" ./cmd/eth-tx-lifecycle
 echo "Backend compiled successfully."
 
 # Show which data sources we're using (helpful for debugging)
@@ -37,4 +38,4 @@ echo "Using RELAY_URLS=${RELAY_URLS:-(default)}"
 echo "Starting backend server on ${ADDR_TO_USE}..."
 
 # Run the compiled binary
-exec env GOAPI_ADDR="$ADDR_TO_USE" "$REPO_ROOT/.pids/eth-tx-lifecycle-backend"
+exec env GOAPI_ADDR="$ADDR_TO_USE" "$REPO_ROOT/backend/bin/eth-tx-lifecycle"

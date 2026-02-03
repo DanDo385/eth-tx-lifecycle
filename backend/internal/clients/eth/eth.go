@@ -48,6 +48,13 @@ type rpcResponse struct {
 	} `json:"error,omitempty"`
 }
 
+// bareError matches non-standard rate-limit responses from providers like Infura
+// that return {"code":-32005,"message":"Too Many Requests"} without a JSON-RPC envelope.
+type bareError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
 // Call invokes an Ethereum JSON-RPC method and returns the raw result.
 func Call(method string, params any) (json.RawMessage, error) {
 	payload, _ := json.Marshal(rpcRequest{JSONRPC: "2.0", ID: 1, Method: method, Params: params})
@@ -65,6 +72,19 @@ func Call(method string, params any) (json.RawMessage, error) {
 	}
 	if parsed.Error != nil {
 		err := errors.New(parsed.Error.Message)
+		rpcHealth.SetError(err)
+		return nil, err
+	}
+	// Detect non-standard error responses (e.g. Infura rate limits) that lack the
+	// JSON-RPC envelope: {"code":-32005,"message":"Too Many Requests","data":{...}}.
+	if parsed.Result == nil {
+		var bare bareError
+		if json.Unmarshal(body, &bare) == nil && bare.Code != 0 {
+			err := fmt.Errorf("rpc error %d: %s", bare.Code, bare.Message)
+			rpcHealth.SetError(err)
+			return nil, err
+		}
+		err := errors.New("rpc returned null result")
 		rpcHealth.SetError(err)
 		return nil, err
 	}
