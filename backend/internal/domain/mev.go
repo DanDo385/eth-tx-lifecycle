@@ -33,17 +33,45 @@ type SwapEvent struct {
 	Pool     string
 	TxIndex  int
 	LogIndex int
+	LogData  string // Raw hex log data (contains token amounts)
+	Topic    string // Event topic (for V2/V3 detection)
+	GasUsed  string // Transaction gas used
+	Status   string // "0x1" success, "0x0" reverted
 }
 
 // Sandwich represents a detected sandwich attack.
 type Sandwich struct {
-	Pool     string `json:"pool"`
-	Attacker string `json:"attacker"`
-	Victim   string `json:"victim"`
-	PreTx    string `json:"preTx"`
-	VictimTx string `json:"victimTx"`
-	PostTx   string `json:"postTx"`
-	Block    string `json:"block"`
+	Pool       string `json:"pool"`
+	PoolName   string `json:"poolName,omitempty"` // Human-readable pool name
+	Attacker   string `json:"attacker"`
+	Victim     string `json:"victim"`
+	PreTx      string `json:"preTx"`
+	VictimTx   string `json:"victimTx"`
+	PostTx     string `json:"postTx"`
+	Block      string `json:"block"`
+	PreTxIndex int    `json:"preTxIndex"`
+	VictimIdx  int    `json:"victimTxIndex"`
+	PostTxIdx  int    `json:"postTxIndex"`
+	// Decoded swap amounts
+	PreSwap    *SwapAmounts `json:"preSwap,omitempty"`
+	VictimSwap *SwapAmounts `json:"victimSwap,omitempty"`
+	PostSwap   *SwapAmounts `json:"postSwap,omitempty"`
+}
+
+// SwapAmounts holds decoded token amounts from a swap event.
+type SwapAmounts struct {
+	Token0In  string `json:"token0In,omitempty"`
+	Token0Out string `json:"token0Out,omitempty"`
+	Token1In  string `json:"token1In,omitempty"`
+	Token1Out string `json:"token1Out,omitempty"`
+}
+
+// ArbHop represents a single hop in an arbitrage path with decoded amounts.
+type ArbHop struct {
+	Pool     string       `json:"pool"`
+	PoolName string       `json:"poolName,omitempty"` // from known pools registry
+	LogIndex int          `json:"logIndex"`
+	Amounts  *SwapAmounts `json:"amounts,omitempty"`
 }
 
 // Arbitrage represents a detected arbitrage (multi-pool swaps in one tx).
@@ -53,6 +81,10 @@ type Arbitrage struct {
 	Pools     []string `json:"pools"`
 	SwapCount int      `json:"swapCount"`
 	Block     string   `json:"block"`
+	TxIndex   int      `json:"txIndex"`
+	GasUsed   string   `json:"gasUsed,omitempty"`
+	Status    string   `json:"status,omitempty"` // "0x1" success, "0x0" reverted
+	Hops      []ArbHop `json:"hops,omitempty"`   // ordered swap sequence
 }
 
 // Liquidation represents a detected lending protocol liquidation.
@@ -83,6 +115,10 @@ type MEVEvent struct {
 	Pool     string
 	LogIndex int
 	Data     string // Extra data for liquidations (borrower address)
+	LogData  string // Raw hex log data (contains token amounts for swaps)
+	Topic    string // Event topic (for V2/V3 detection)
+	GasUsed  string // Transaction gas used
+	Status   string // "0x1" success, "0x0" reverted
 }
 
 // MEVAnalysis is the complete MEV analysis result for a block.
@@ -176,12 +212,15 @@ func FetchBlockFull(tag string) (*Block, error) {
 }
 
 type mevReceipt struct {
-	TxHash string
-	From   string
-	Logs   []struct {
+	TxHash  string
+	From    string
+	GasUsed string // hex-encoded gas used
+	Status  string // "0x1" success, "0x0" reverted
+	Logs    []struct {
 		Address  string
 		Topics   []string
 		LogIndex int
+		Data     string // hex-encoded event data (contains token amounts)
 	}
 }
 
@@ -192,23 +231,27 @@ func fetchMEVReceipt(txHash, from string) (*mevReceipt, error) {
 	}
 	var r struct {
 		TransactionHash string `json:"transactionHash"`
+		GasUsed         string `json:"gasUsed"`
+		Status          string `json:"status"`
 		Logs            []struct {
 			Address  string   `json:"address"`
 			Topics   []string `json:"topics"`
 			LogIndex string   `json:"logIndex"`
+			Data     string   `json:"data"`
 		} `json:"logs"`
 	}
 	if err := json.Unmarshal(raw, &r); err != nil {
 		return nil, err
 	}
-	rcpt := &mevReceipt{TxHash: r.TransactionHash, From: from}
+	rcpt := &mevReceipt{TxHash: r.TransactionHash, From: from, GasUsed: r.GasUsed, Status: r.Status}
 	for _, l := range r.Logs {
 		idx := parseHexInt(l.LogIndex)
 		rcpt.Logs = append(rcpt.Logs, struct {
 			Address  string
 			Topics   []string
 			LogIndex int
-		}{Address: l.Address, Topics: l.Topics, LogIndex: idx})
+			Data     string
+		}{Address: l.Address, Topics: l.Topics, LogIndex: idx, Data: l.Data})
 	}
 	return rcpt, nil
 }
@@ -258,6 +301,10 @@ func CollectMEVEvents(b *Block) ([]MEVEvent, error) {
 					Searcher: strings.ToLower(rcpt.From),
 					Pool:     strings.ToLower(lg.Address),
 					LogIndex: lg.LogIndex,
+					LogData:  lg.Data,
+					Topic:    topic,
+					GasUsed:  rcpt.GasUsed,
+					Status:   rcpt.Status,
 				}
 				switch topic {
 				case swapTopicV2, swapTopicV3:
@@ -319,6 +366,10 @@ func CollectSwaps(b *Block) ([]SwapEvent, error) {
 				Pool:     e.Pool,
 				TxIndex:  e.TxIndex,
 				LogIndex: e.LogIndex,
+				LogData:  e.LogData,
+				Topic:    e.Topic,
+				GasUsed:  e.GasUsed,
+				Status:   e.Status,
 			})
 		}
 	}
@@ -343,8 +394,20 @@ func DetectSandwiches(swaps []SwapEvent, blockNum string) []Sandwich {
 			}
 			if pre.TxFrom == post.TxFrom && pre.TxFrom != victim.TxFrom {
 				out = append(out, Sandwich{
-					Pool: pool, Attacker: pre.TxFrom, Victim: victim.TxFrom,
-					PreTx: pre.TxHash, VictimTx: victim.TxHash, PostTx: post.TxHash, Block: blockNum,
+					Pool:       pool,
+					PoolName:   GetPoolName(pool),
+					Attacker:   pre.TxFrom,
+					Victim:     victim.TxFrom,
+					PreTx:      pre.TxHash,
+					VictimTx:   victim.TxHash,
+					PostTx:     post.TxHash,
+					Block:      blockNum,
+					PreTxIndex: pre.TxIndex,
+					VictimIdx:  victim.TxIndex,
+					PostTxIdx:  post.TxIndex,
+					PreSwap:    DecodeSwap(pre.LogData, pre.Topic),
+					VictimSwap: DecodeSwap(victim.LogData, victim.Topic),
+					PostSwap:   DecodeSwap(post.LogData, post.Topic),
 				})
 				i += 2
 			}
@@ -378,12 +441,30 @@ func DetectArbitrage(events []MEVEvent, blockNum string) []Arbitrage {
 			for p := range pools {
 				poolList = append(poolList, p)
 			}
+			// Sort swaps by log index for ordered hop sequence
+			sort.Slice(swaps, func(i, j int) bool {
+				return swaps[i].LogIndex < swaps[j].LogIndex
+			})
+			// Build hops with decoded amounts and pool names
+			hops := make([]ArbHop, len(swaps))
+			for i, s := range swaps {
+				hops[i] = ArbHop{
+					Pool:     s.Pool,
+					PoolName: GetPoolName(s.Pool),
+					LogIndex: s.LogIndex,
+					Amounts:  DecodeSwap(s.LogData, s.Topic),
+				}
+			}
 			arbs = append(arbs, Arbitrage{
 				Searcher:  swaps[0].Searcher,
 				TxHash:    txHash,
 				Pools:     poolList,
 				SwapCount: len(swaps),
 				Block:     blockNum,
+				TxIndex:   swaps[0].TxIndex,
+				GasUsed:   swaps[0].GasUsed,
+				Status:    swaps[0].Status,
+				Hops:      hops,
 			})
 		}
 	}

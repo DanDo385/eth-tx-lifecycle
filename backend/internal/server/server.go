@@ -39,6 +39,9 @@ type eduEnvelope struct {
 }
 
 func writeErr(w http.ResponseWriter, status int, kind, message, hint string) {
+	if status >= 500 {
+		log.Printf("server: %d %s: %s (hint: %s)", status, kind, message, hint)
+	}
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(eduEnvelope{Error: &eduError{Kind: kind, Message: message, Hint: hint}})
@@ -325,6 +328,7 @@ func handleMEV(w http.ResponseWriter, r *http.Request) {
 	}
 	analysis, err := domain.AnalyzeBlockMEV(b)
 	if err != nil {
+		log.Printf("MEV_ANALYSIS: %v", err)
 		writeErr(w, http.StatusInternalServerError, "MEV_ANALYSIS", "Failed to analyze block for MEV", "")
 		return
 	}
@@ -400,6 +404,7 @@ func handleSnapshot(w http.ResponseWriter, r *http.Request) {
 	response, err := domain.BuildSnapshot(limit, includeSandwich, blockTag)
 	if err != nil {
 		domain.LogSnapshot(started, err)
+		log.Printf("SNAPSHOT: %v", err)
 		writeErr(w, http.StatusInternalServerError, "SNAPSHOT", "Failed to build snapshot", "")
 		return
 	}
@@ -460,7 +465,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 func Run() error {
 	config.LoadEnvFile(".env.local")
 	domain.Start()
-	mux := http.NewServeMux()
+	mux := http.NewServeMux() // HTTP request multiplexer
 	// Data endpoints: mempool, relay (delivered/received), beacon (headers, finality), block, snapshot.
 	mux.HandleFunc("/api/mempool", handleMempool)
 	mux.HandleFunc("/api/relays/delivered", handleRelaysDelivered)

@@ -177,3 +177,41 @@ export function getPercentile(value: number, values: number[]): string {
   if (percentile <= 50) return 'top 50%';
   return '';
 }
+
+// Format token amount from hex string (defaults to 18 decimals for most ERC20 tokens)
+// For better accuracy with specific tokens, pass the actual decimals
+export function formatTokenAmount(hexAmount: string | undefined | null, decimals = 18): string {
+  if (!hexAmount || hexAmount === '0x0' || hexAmount === '0x' || hexAmount === '0') return '0';
+  try {
+    const amount = BigInt(hexAmount);
+    const divisor = BigInt(10 ** decimals);
+    const whole = amount / divisor;
+    const remainder = amount % divisor;
+
+    // Format the decimal part
+    const remainderStr = remainder.toString().padStart(decimals, '0');
+
+    // Trim trailing zeros and limit decimal places shown
+    const significantDecimals = remainderStr.replace(/0+$/, '').slice(0, 4);
+
+    if (significantDecimals) {
+      // Format whole number with commas
+      const wholeStr = whole.toLocaleString('en-US');
+      return `${wholeStr}.${significantDecimals}`;
+    }
+    return whole.toLocaleString('en-US');
+  } catch {
+    return '0';
+  }
+}
+
+// Format gas used from hex string
+export function formatGasUsed(hexGas: string | undefined | null): string {
+  if (!hexGas || hexGas === '0x0' || hexGas === '0x') return '0';
+  try {
+    const gas = parseInt(hexGas, 16);
+    return gas.toLocaleString('en-US');
+  } catch {
+    return '0';
+  }
+}
