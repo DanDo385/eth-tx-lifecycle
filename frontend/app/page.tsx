@@ -16,6 +16,7 @@ import RelayDeliveredView from "./components/RelayDeliveredView";
 import BeaconHeadersView from "./components/BeaconHeadersView";
 import FinalityView from "./components/FinalityView";
 import MEVView from "./components/MEVView";
+import ForNormiesDemoDirector from "./components/ForNormiesDemoDirector";
 import { weiToEth, formatNumber } from "./utils/format";
 
 // Type aliases to make the code more readable
@@ -338,6 +339,8 @@ export default function Page() {
           </div>
         )}
       </header>
+
+      <ForNormiesDemoDirector />
 
       {/* Step-by-Step Walkthrough Guide */}
       {/* This guide was essential - users didn't know where to start */}

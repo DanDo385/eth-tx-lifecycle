@@ -4,6 +4,15 @@
 
 Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows real-time data from the Ethereum network with detailed explanations, analogies, and interactive learning tools.
 
+## Portfolio demo package
+
+- Loom guide: [`DEMO_GUIDE.md`](./DEMO_GUIDE.md)
+- Portfolio tag: `for-normies`
+- Recommended primary video: 45-60 seconds
+- Best GIF loop: wallet send → mempool → builder/relay → validator → finality
+- Thumbnail hook: `YOU CLICKED SEND. NOW WHAT?`
+
+
 ## What You'll Learn
 
 - **How cryptocurrency transactions work** - Complete journey from mempool to finality
