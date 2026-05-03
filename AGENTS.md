@@ -8,7 +8,7 @@ Do not add separate root-level `.cursorrules`, `CLAUDE.md`, `GEMINI.md`, or tool
 
 `eth-tx-lifecycle` is an educational Ethereum transaction lifecycle visualizer. It turns the invisible path after a wallet user clicks send into a guided product experience: mempool, builders, relays, validators, finality, and MEV.
 
-Portfolio lane: `for-normies`.
+Demo focus: Ethereum transaction lifecycle walkthrough.
 
 ## Demo principle
 
@@ -32,7 +32,7 @@ The goal is not to flex jargon. The goal is to make Ethereum's transaction pipel
 
 - Keep explanations beginner-friendly but not condescending.
 - Always convert hex/wei/gwei values into human-readable units before display.
-- Preserve the `ForNormiesDemoDirector` and `DEMO_GUIDE.md` narrative flow.
+- Preserve the `transaction lifecycleDemoDirector` and `DEMO_GUIDE.md` narrative flow.
 - Prefer visual hierarchy, tooltips, and concise explanations over raw JSON.
 
 ## Documentation rules

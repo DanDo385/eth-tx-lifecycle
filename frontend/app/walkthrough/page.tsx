@@ -55,7 +55,7 @@ function PackageTracker({ activeIndex }: { activeIndex: number }) {
     <div className="rounded-3xl border border-blue-400/30 bg-gradient-to-br from-slate-950 via-blue-950/40 to-purple-950/30 p-6 shadow-2xl shadow-blue-950/30">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <div className="text-xs uppercase tracking-[0.28em] text-blue-300">ForNormies auto tour</div>
+          <div className="text-xs uppercase tracking-[0.28em] text-blue-300">Transaction walkthrough auto tour</div>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-white md:text-5xl">You clicked Send. Now what?</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75 md:text-base">
             An Ethereum transaction is like a package with a public tracking number. This route is the clean recording surface: no raw JSON, no jargon wall, just the journey from wallet to finality.
@@ -101,7 +101,7 @@ function MEVMiniAnimation() {
   );
 }
 
-export default function ForNormiesPage() {
+export default function WalkthroughPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [autoTour, setAutoTour] = useState(false);
   const activeStage = stages[activeIndex];
@@ -133,7 +133,7 @@ export default function ForNormiesPage() {
     <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
       <div className="flex items-center justify-between">
         <Link href="/" className="text-sm text-blue-300 hover:text-blue-200">← Full technical explorer</Link>
-        <div className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-blue-200">#ForNormies</div>
+        <div className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-blue-200">Transaction walkthrough</div>
       </div>
 
       <PackageTracker activeIndex={activeIndex} />
@@ -171,7 +171,7 @@ export default function ForNormiesPage() {
             <div className="mt-3 rounded-xl bg-black/40 p-5 text-center">
               <div className="text-2xl font-black text-white">YOU CLICKED SEND.</div>
               <div className="mt-1 text-xl font-black text-blue-200">NOW WHAT?</div>
-              <div className="mt-3 text-xs font-bold uppercase tracking-widest text-purple-200">#ForNormies</div>
+              <div className="mt-3 text-xs font-bold uppercase tracking-widest text-purple-200">Transaction walkthrough</div>
             </div>
           </div>
         </aside>

@@ -1,4 +1,4 @@
-export default function ForNormiesDemoDirector() {
+export default function TransactionWalkthroughDemoDirector() {
   const beats = [
     ["1", "Click Send", "A user signs a transaction. Treat it like a package entering the mail system."],
     ["2", "Mempool", "The transaction waits with everyone else. Fees are the postage and priority signal."],
@@ -12,7 +12,7 @@ export default function ForNormiesDemoDirector() {
     <section className="rounded-xl border border-blue-400/30 bg-gradient-to-br from-blue-500/15 via-black/40 to-purple-500/15 p-5 shadow-xl shadow-blue-950/20">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
-          <div className="text-xs uppercase tracking-[0.25em] text-blue-300">for-normies · Loom recording spine</div>
+          <div className="text-xs uppercase tracking-[0.25em] text-blue-300">transaction lifecycle · Loom recording spine</div>
           <h2 className="mt-1 text-2xl font-bold text-white">You clicked send. Where did your money actually go?</h2>
           <p className="mt-2 text-sm leading-6 text-white/80">
             Record this as a clear public explainer, not a protocol lecture. Keep the analogy simple: transactions are packages, gas is postage,

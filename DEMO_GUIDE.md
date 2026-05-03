@@ -1,7 +1,7 @@
 # Loom Demo Guide: eth-tx-lifecycle
 
-Status: optimized for a natural 45-90 second ForNormies walkthrough.
-Portfolio tag: for-normies
+Status: optimized for a natural 45-90 second transaction lifecycle walkthrough.
+Demo focus: walkthrough
 Primary repo URL: https://github.com/DanDo385/eth-tx-lifecycle
 
 ## Core story
@@ -16,7 +16,7 @@ One-liner:
 An Ethereum transaction lifecycle visualizer that explains what happens after a user clicks send: mempool, builders, relays, validators, finality, and MEV.
 
 Positioning:
-This is the `for-normies` lane. The flex is not obscure jargon. The flex is translating a complex distributed system into a product experience humans can understand.
+This walkthrough translates a complex distributed system into a product experience humans can understand. The flex is clarity without losing technical accuracy.
 
 ## What the Loom should feel like
 
@@ -37,7 +37,7 @@ The demo should be a walkthrough of the product, not a lecture about every Ether
 3. Use a clean browser window.
 4. Open the clean recording route:
 
-   http://localhost:3000/for-normies
+   http://localhost:3000/walkthrough
 
 5. Click **Track a transaction** to start the package-tracker auto tour.
 6. Use the main `/` technical explorer only as a follow-up if the viewer wants live data details.

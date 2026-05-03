@@ -7,9 +7,9 @@ Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows 
 ## Portfolio demo package
 
 - Loom guide: [`DEMO_GUIDE.md`](./DEMO_GUIDE.md)
-- Portfolio tag: `for-normies`
+- Demo focus: Ethereum transaction lifecycle walkthrough
 - Recommended primary video: 45-60 seconds
-- Clean recording route: `http://localhost:3000/for-normies`
+- Clean recording route: `http://localhost:3000/walkthrough`
 - Best GIF loop: package tracker auto-tour → mempool → builder/relay → validator → finality
 - Thumbnail hook: `YOU CLICKED SEND. NOW WHAT?`
 
