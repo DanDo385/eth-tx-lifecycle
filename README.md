@@ -9,7 +9,8 @@ Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows 
 - Loom guide: [`DEMO_GUIDE.md`](./DEMO_GUIDE.md)
 - Portfolio tag: `for-normies`
 - Recommended primary video: 45-60 seconds
-- Best GIF loop: wallet send → mempool → builder/relay → validator → finality
+- Clean recording route: `http://localhost:3000/for-normies`
+- Best GIF loop: package tracker auto-tour → mempool → builder/relay → validator → finality
 - Thumbnail hook: `YOU CLICKED SEND. NOW WHAT?`
 
 

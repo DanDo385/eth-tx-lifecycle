@@ -35,15 +35,12 @@ The demo should be a walkthrough of the product, not a lecture about every Ether
    npm run dev
 
 3. Use a clean browser window.
-4. Keep the top ForNormies Demo Director visible for the opening.
-5. Click panels in this order:
-   - Mempool
-   - Builders -> Relays
-   - Relays -> Validators
-   - Proposed blocks + Builder payments
-   - Finality checkpoints
-   - MEV detector
-6. Keep narration focused on the user question: "I clicked send. Now what?"
+4. Open the clean recording route:
+
+   http://localhost:3000/for-normies
+
+5. Click **Track a transaction** to start the package-tracker auto tour.
+6. Use the main `/` technical explorer only as a follow-up if the viewer wants live data details.
 
 ## Step-by-step 60-second Loom
 
