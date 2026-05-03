@@ -1,9 +1,7 @@
 // frontend/next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    typedRoutes: true,
-  },
+  typedRoutes: true,
 
   // proxy frontend /api/* to your backend
   async rewrites() {

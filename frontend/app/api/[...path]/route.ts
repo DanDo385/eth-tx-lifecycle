@@ -6,12 +6,13 @@ import { NextRequest, NextResponse } from 'next/server';
 const PROXY_ENABLED = process.env.PROXY_MODE === 'route';
 const GOAPI_ORIGIN = process.env.GOAPI_ORIGIN || 'http://localhost:8080';
 
-async function proxy(request: NextRequest, params: { path: string[] }, method: string) {
+async function proxy(request: NextRequest, paramsPromise: Promise<{ path: string[] }>, method: string) {
   if (!PROXY_ENABLED) {
     // Fall through to next.config.mjs rewrites
     return NextResponse.next();
   }
 
+  const params = await paramsPromise;
   const path = params.path.join('/');
   const searchParams = new URL(request.url).searchParams.toString();
   const queryString = searchParams ? `?${searchParams}` : '';
@@ -36,14 +37,14 @@ async function proxy(request: NextRequest, params: { path: string[] }, method: s
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   return proxy(request, params, 'GET');
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   return proxy(request, params, 'POST');
 }
