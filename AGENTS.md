@@ -45,6 +45,6 @@ The goal is not to flex jargon. The goal is to make Ethereum's transaction pipel
 Before reporting success after code changes:
 
 ```bash
-cd /Users/openclaw/eth-tx-lifecycle/frontend
+cd /Users/openclaw/Code/eth-tx-lifecycle/frontend
 npm run build
 ```

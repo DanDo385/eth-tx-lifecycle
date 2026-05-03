@@ -31,7 +31,7 @@ The demo should be a walkthrough of the product, not a lecture about every Ether
 1. Start the backend per README if live data is desired.
 2. Start frontend:
 
-   cd /Users/openclaw/eth-tx-lifecycle/frontend
+   cd /Users/openclaw/Code/eth-tx-lifecycle/frontend
    npm run dev
 
 3. Use a clean browser window.
