@@ -17,6 +17,21 @@ export function weiToEth(hexWei: string): string {
   }
 }
 
+// Same scale as weiToEth but two extra fractional digits (e.g. builder bids).
+export function weiToEthExtended(hexWei: string): string {
+  if (!hexWei || hexWei === '0x0' || hexWei === '0x') return '0.000000';
+  try {
+    const wei = BigInt(hexWei);
+    const eth = Number(wei) / 1e18;
+    if (eth < 0.000001) return '0.000000';
+    if (eth < 0.0001) return eth.toFixed(10);
+    if (eth < 1) return eth.toFixed(6);
+    return eth.toFixed(5);
+  } catch {
+    return '0.000000';
+  }
+}
+
 // Convert hex gas price to gwei
 export function hexToGwei(hex: string): number {
   if (!hex || hex === '0x0' || hex === '0x') return 0;

@@ -5,7 +5,15 @@
  * Helps explain why transaction counts seem inflated (same txs in multiple competing blocks).
  */
 import React from 'react';
-import { weiToEth, hexToNumber, formatNumber, shortenHash, getBuilderName, slotToTime, blockNumberToNumber } from '../utils/format';
+import { weiToEthExtended, hexToNumber, formatNumber, getBuilderName, blockNumberToNumber } from '../utils/format';
+import StepRawJsonDetails from './StepRawJsonDetails';
+import {
+  STEP_TABLE_PREVIEW_LIMIT,
+  stepPanelTableBarClass,
+  stepPanelTableFootnoteClass,
+  stepPanelTableWrapClass,
+  stepPanelEmptyTextClass,
+} from './stepPanelConstants';
 
 interface BuilderRelayViewProps {
   data: {
@@ -19,9 +27,12 @@ interface BuilderRelayViewProps {
 export default function BuilderRelayView({ data }: BuilderRelayViewProps) {
   if (!data || !data.received_blocks || data.received_blocks.length === 0) {
     return (
-      <p className="text-white/60">
-        No builder block submissions found. Some relays do not expose builder_blocks_received; try Relays → Validators for delivered payloads.
-      </p>
+      <div className="space-y-3">
+        <p className={stepPanelEmptyTextClass}>
+          No builder block submissions found. Some relays do not expose builder_blocks_received; try Relays → Validators for delivered payloads.
+        </p>
+        <StepRawJsonDetails data={data} className="mt-0" />
+      </div>
     );
   }
 
@@ -47,7 +58,12 @@ export default function BuilderRelayView({ data }: BuilderRelayViewProps) {
   });
 
   if (blocks.length === 0) {
-    return <p className="text-white/60">No builder submissions for the next slot yet</p>;
+    return (
+      <div className="space-y-3">
+        <p className={stepPanelEmptyTextClass}>No builder submissions for the next slot yet</p>
+        <StepRawJsonDetails data={data} className="mt-0" />
+      </div>
+    );
   }
 
   // Sort by bid value descending so the likely winner is at the top
@@ -57,8 +73,7 @@ export default function BuilderRelayView({ data }: BuilderRelayViewProps) {
     return vb > va ? 1 : va > vb ? -1 : 0;
   });
 
-  const DISPLAY_LIMIT = 10;
-  const displayedBlocks = sortedBlocks.slice(0, DISPLAY_LIMIT);
+  const displayedBlocks = sortedBlocks.slice(0, STEP_TABLE_PREVIEW_LIMIT);
 
   // Metrics for this slot only (no mixing with other slots)
   const totalValue = sortedBlocks.reduce((sum, block) => {
@@ -102,13 +117,13 @@ export default function BuilderRelayView({ data }: BuilderRelayViewProps) {
 
         <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-lg p-4">
           <div className="text-blue-400 text-xs font-medium mb-1">Avg Bid Value</div>
-          <div className="text-white text-2xl font-bold">{avgValue.toFixed(4)}</div>
+          <div className="text-white text-2xl font-bold">{avgValue.toFixed(6)}</div>
           <div className="text-white/60 text-xs mt-1">ETH per block</div>
         </div>
 
         <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-lg p-4">
           <div className="text-green-400 text-xs font-medium mb-1">Highest Bid</div>
-          <div className="text-white text-2xl font-bold">{weiToEth(highestBid.toString())}</div>
+          <div className="text-white text-2xl font-bold">{weiToEthExtended(highestBid.toString())}</div>
           <div className="text-white/60 text-xs mt-1">ETH</div>
         </div>
 
@@ -188,7 +203,7 @@ export default function BuilderRelayView({ data }: BuilderRelayViewProps) {
             </thead>
             <tbody>
               {displayedBlocks.map((block, idx) => {
-                const bidValue = block.value ? weiToEth(block.value) : '0';
+                const bidValue = block.value ? weiToEthExtended(block.value) : '0.000000';
                 const gasUsed = block.gas_used ? hexToNumber(block.gas_used) : 0;
                 const gasLimit = block.gas_limit ? hexToNumber(block.gas_limit) : 0;
                 const gasPercent = gasLimit > 0 ? Math.round((gasUsed / gasLimit) * 100) : 0;
@@ -216,11 +231,13 @@ export default function BuilderRelayView({ data }: BuilderRelayViewProps) {
         </div>
       </div>
 
-      <p className="text-white/50 text-xs text-center mt-2">
-        {sortedBlocks.length > DISPLAY_LIMIT
-          ? `Showing ${DISPLAY_LIMIT} of ${formatNumber(sortedBlocks.length)} proposals for slot ${nextSlot.toLocaleString()} (sorted by bid, highest first). Total count and metrics above include all ${formatNumber(sortedBlocks.length)} proposals.`
+      <p className={`${stepPanelTableFootnoteClass} mt-2`}>
+        {sortedBlocks.length > STEP_TABLE_PREVIEW_LIMIT
+          ? `Showing ${STEP_TABLE_PREVIEW_LIMIT} of ${formatNumber(sortedBlocks.length)} proposals for slot ${nextSlot.toLocaleString()} (sorted by bid, highest first). Total count and metrics above include all ${formatNumber(sortedBlocks.length)} proposals.`
           : `All ${sortedBlocks.length} proposals for slot ${nextSlot.toLocaleString()} (sorted by bid, highest first)`}
       </p>
+
+      <StepRawJsonDetails data={data} />
     </div>
   );
 }

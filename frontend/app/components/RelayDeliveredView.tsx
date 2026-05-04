@@ -5,7 +5,15 @@
  * Compare with BuilderRelayView to see which bids lost the auction.
  */
 import React from 'react';
-import { weiToEth, hexToNumber, formatNumber, shortenHash, getBuilderName, slotToTime, blockNumberToNumber } from '../utils/format';
+import { weiToEth, hexToNumber, formatNumber, getBuilderName, blockNumberToNumber } from '../utils/format';
+import StepRawJsonDetails from './StepRawJsonDetails';
+import {
+  STEP_TABLE_PREVIEW_LIMIT,
+  stepPanelTableBarClass,
+  stepPanelTableFootnoteClass,
+  stepPanelTableWrapClass,
+  stepPanelEmptyTextClass,
+} from './stepPanelConstants';
 
 interface RelayDeliveredViewProps {
   data: {
@@ -17,7 +25,12 @@ interface RelayDeliveredViewProps {
 
 export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
   if (!data || !data.delivered_payloads || data.delivered_payloads.length === 0) {
-    return <p className="text-white/60">No delivered payloads found</p>;
+    return (
+      <div className="space-y-3">
+        <p className={stepPanelEmptyTextClass}>No delivered payloads found</p>
+        <StepRawJsonDetails data={data ?? {}} className="mt-0" />
+      </div>
+    );
   }
 
   // Use all delivered payloads from backend; sort by slot descending (most recent first)
@@ -33,7 +46,12 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
     : 0;
 
   if (payloads.length === 0) {
-    return <p className="text-white/60">No delivered payloads found</p>;
+    return (
+      <div className="space-y-3">
+        <p className={stepPanelEmptyTextClass}>No delivered payloads found</p>
+        <StepRawJsonDetails data={data} className="mt-0" />
+      </div>
+    );
   }
 
   // Calculate aggregate metrics
@@ -60,8 +78,7 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
   // Get unique builders (winning builders)
   const uniqueBuilders = new Set(payloads.map(p => p.builder_pubkey).filter(Boolean));
 
-  const DISPLAY_LIMIT = 10;
-  const displayedPayloads = payloads.slice(0, DISPLAY_LIMIT);
+  const displayedPayloads = payloads.slice(0, STEP_TABLE_PREVIEW_LIMIT);
 
   return (
     <div className="space-y-4">
@@ -98,7 +115,7 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
           <div className="flex items-start gap-2">
             <span className="text-green-400 text-lg">⚡</span>
             <div className="text-white/80">
-              <strong className="text-white">Winning blocks delivered:</strong> All {formatNumber(payloads.length)} blocks below won the MEV auction and were delivered to validators. Only the first {Math.min(10, payloads.length)} are shown in the table (sorted by slot, most recent first).
+              <strong className="text-white">Winning blocks delivered:</strong> All {formatNumber(payloads.length)} blocks below won the MEV auction and were delivered to validators. Only the first {Math.min(STEP_TABLE_PREVIEW_LIMIT, payloads.length)} are shown in the table (sorted by slot, most recent first).
             </div>
           </div>
         </div>
@@ -127,8 +144,8 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
       </div>
 
       {/* Table shows first 10 blocks; metrics above use full count */}
-      <div className="border border-white/10 rounded-lg overflow-hidden">
-        <div className="bg-white/5 border-b border-white/10 px-3 py-2 text-xs text-white/70">
+      <div className={stepPanelTableWrapClass}>
+        <div className={stepPanelTableBarClass}>
           Showing {displayedPayloads.length} of {formatNumber(payloads.length)} delivered blocks below.
         </div>
         <div className="overflow-x-auto">
@@ -177,11 +194,13 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
         </div>
       </div>
 
-      {payloads.length > DISPLAY_LIMIT && (
-        <p className="text-white/50 text-xs text-center mt-2">
-          Showing {DISPLAY_LIMIT} of {formatNumber(payloads.length)} delivered blocks. Total count and metrics above include all {formatNumber(payloads.length)} blocks.
+      {payloads.length > STEP_TABLE_PREVIEW_LIMIT && (
+        <p className={`${stepPanelTableFootnoteClass} mt-2`}>
+          Showing {STEP_TABLE_PREVIEW_LIMIT} of {formatNumber(payloads.length)} delivered blocks. Total count and metrics above include all {formatNumber(payloads.length)} blocks.
         </p>
       )}
+
+      <StepRawJsonDetails data={data} />
     </div>
   );
 }

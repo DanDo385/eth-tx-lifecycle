@@ -6,6 +6,14 @@
  */
 import React from 'react';
 import { hexToNumber, formatNumber, shortenHash, formatTokenAmount, formatGasUsed } from '../utils/format';
+import StepRawJsonDetails from './StepRawJsonDetails';
+import {
+  STEP_TABLE_PREVIEW_LIMIT,
+  stepPanelTableBarClass,
+  stepPanelTableFootnoteClass,
+  stepPanelTableWrapClass,
+  stepPanelEmptyTextClass,
+} from './stepPanelConstants';
 
 // Helper to parse hex amount to BigInt
 function hexToBigInt(hex: string | undefined | null): bigint {
@@ -172,13 +180,23 @@ interface MEVViewProps {
 
 export default function MEVView({ data }: MEVViewProps) {
   if (!data) {
-    return <p className="text-white/60">No MEV detection data available</p>;
+    return (
+      <div className="space-y-3">
+        <p className={stepPanelEmptyTextClass}>No MEV detection data available</p>
+        <StepRawJsonDetails data={{}} className="mt-0" />
+      </div>
+    );
   }
 
   const sandwiches = data.sandwiches || [];
   const arbitrages = data.arbitrages || [];
   const liquidations = data.liquidations || [];
   const jitLiquidity = data.jitLiquidity || [];
+
+  const sandwichesPreview = sandwiches.slice(0, STEP_TABLE_PREVIEW_LIMIT);
+  const arbitragesPreview = arbitrages.slice(0, STEP_TABLE_PREVIEW_LIMIT);
+  const liquidationsPreview = liquidations.slice(0, STEP_TABLE_PREVIEW_LIMIT);
+  const jitPreview = jitLiquidity.slice(0, STEP_TABLE_PREVIEW_LIMIT);
   const swapCount = data.swapCount || 0;
   const blockNum = data.block ? hexToNumber(data.block) : 0;
   const totalTxs = data.totalTx || 0;
@@ -294,12 +312,16 @@ export default function MEVView({ data }: MEVViewProps) {
 
       {/* Sandwich Details */}
       {hasSandwiches && (
-        <div className="border border-white/10 rounded-lg overflow-hidden">
-          <div className="bg-red-500/10 border-b border-white/10 p-3">
-            <h4 className="text-red-400 font-semibold">🥪 Sandwich Attacks ({sandwiches.length})</h4>
+        <div className={stepPanelTableWrapClass}>
+          <div className={stepPanelTableBarClass}>
+            <span className="text-red-400 font-semibold">🥪 Sandwich attacks</span>
+            <span className="text-white/50">
+              {' '}
+              — Showing {sandwichesPreview.length} of {formatNumber(sandwiches.length)}
+            </span>
           </div>
           <div className="divide-y divide-white/5">
-            {sandwiches.map((sandwich, idx) => (
+            {sandwichesPreview.map((sandwich, idx) => (
               <div key={idx} className="p-4 hover:bg-white/5">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -406,17 +428,26 @@ export default function MEVView({ data }: MEVViewProps) {
               </div>
             ))}
           </div>
+          {sandwiches.length > STEP_TABLE_PREVIEW_LIMIT && (
+            <p className={`${stepPanelTableFootnoteClass} px-3 py-2 border-t border-white/10`}>
+              Showing {STEP_TABLE_PREVIEW_LIMIT} of {formatNumber(sandwiches.length)} sandwich patterns. Summary counts above include all events.
+            </p>
+          )}
         </div>
       )}
 
       {/* Arbitrage Details */}
       {hasArbitrage && (
-        <div className="border border-white/10 rounded-lg overflow-hidden">
-          <div className="bg-purple-500/10 border-b border-white/10 p-3">
-            <h4 className="text-purple-400 font-semibold">🔄 Arbitrage Transactions ({arbitrages.length})</h4>
+        <div className={stepPanelTableWrapClass}>
+          <div className={stepPanelTableBarClass}>
+            <span className="text-purple-400 font-semibold">🔄 Arbitrage transactions</span>
+            <span className="text-white/50">
+              {' '}
+              — Showing {arbitragesPreview.length} of {formatNumber(arbitrages.length)}
+            </span>
           </div>
           <div className="divide-y divide-white/5">
-            {arbitrages.map((arb, idx) => {
+            {arbitragesPreview.map((arb, idx) => {
               // Calculate profit estimate and gas cost
               const poolNames = arb.hops?.map((h: any) => h.poolName) || [];
               const profitEstimate = estimateArbProfit(arb.hops, poolNames);
@@ -562,17 +593,26 @@ export default function MEVView({ data }: MEVViewProps) {
               );
             })}
           </div>
+          {arbitrages.length > STEP_TABLE_PREVIEW_LIMIT && (
+            <p className={`${stepPanelTableFootnoteClass} px-3 py-2 border-t border-white/10`}>
+              Showing {STEP_TABLE_PREVIEW_LIMIT} of {formatNumber(arbitrages.length)} arbitrage transactions.
+            </p>
+          )}
         </div>
       )}
 
       {/* Liquidation Details */}
       {hasLiquidations && (
-        <div className="border border-white/10 rounded-lg overflow-hidden">
-          <div className="bg-yellow-500/10 border-b border-white/10 p-3">
-            <h4 className="text-yellow-400 font-semibold">⚡ Liquidations ({liquidations.length})</h4>
+        <div className={stepPanelTableWrapClass}>
+          <div className={stepPanelTableBarClass}>
+            <span className="text-yellow-400 font-semibold">⚡ Liquidations</span>
+            <span className="text-white/50">
+              {' '}
+              — Showing {liquidationsPreview.length} of {formatNumber(liquidations.length)}
+            </span>
           </div>
           <div className="divide-y divide-white/5">
-            {liquidations.map((liq, idx) => (
+            {liquidationsPreview.map((liq, idx) => (
               <div key={idx} className="p-4 hover:bg-white/5">
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -598,17 +638,26 @@ export default function MEVView({ data }: MEVViewProps) {
               </div>
             ))}
           </div>
+          {liquidations.length > STEP_TABLE_PREVIEW_LIMIT && (
+            <p className={`${stepPanelTableFootnoteClass} px-3 py-2 border-t border-white/10`}>
+              Showing {STEP_TABLE_PREVIEW_LIMIT} of {formatNumber(liquidations.length)} liquidations.
+            </p>
+          )}
         </div>
       )}
 
       {/* JIT Liquidity Details */}
       {hasJIT && (
-        <div className="border border-white/10 rounded-lg overflow-hidden">
-          <div className="bg-blue-500/10 border-b border-white/10 p-3">
-            <h4 className="text-blue-400 font-semibold">💧 JIT Liquidity ({jitLiquidity.length})</h4>
+        <div className={stepPanelTableWrapClass}>
+          <div className={stepPanelTableBarClass}>
+            <span className="text-blue-400 font-semibold">💧 JIT liquidity</span>
+            <span className="text-white/50">
+              {' '}
+              — Showing {jitPreview.length} of {formatNumber(jitLiquidity.length)}
+            </span>
           </div>
           <div className="divide-y divide-white/5">
-            {jitLiquidity.map((jit, idx) => (
+            {jitPreview.map((jit, idx) => (
               <div key={idx} className="p-4 hover:bg-white/5">
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -638,6 +687,11 @@ export default function MEVView({ data }: MEVViewProps) {
               </div>
             ))}
           </div>
+          {jitLiquidity.length > STEP_TABLE_PREVIEW_LIMIT && (
+            <p className={`${stepPanelTableFootnoteClass} px-3 py-2 border-t border-white/10`}>
+              Showing {STEP_TABLE_PREVIEW_LIMIT} of {formatNumber(jitLiquidity.length)} JIT liquidity patterns.
+            </p>
+          )}
         </div>
       )}
 
@@ -651,6 +705,8 @@ export default function MEVView({ data }: MEVViewProps) {
           </div>
         </div>
       )}
+
+      <StepRawJsonDetails data={data} />
     </div>
   );
 }

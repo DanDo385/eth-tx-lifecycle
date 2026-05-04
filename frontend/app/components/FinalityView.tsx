@@ -4,7 +4,13 @@
  * Shows justification → finalization process and explains why exchanges wait ~15 minutes for deposits.
  */
 import React from 'react';
-import { hexToNumber, formatNumber, slotToEpoch, slotToTime } from '../utils/format';
+import { formatNumber } from '../utils/format';
+import StepRawJsonDetails from './StepRawJsonDetails';
+import {
+  stepPanelTableBarClass,
+  stepPanelTableWrapClass,
+  stepPanelEmptyTextClass,
+} from './stepPanelConstants';
 
 interface FinalityViewProps {
   data: any;
@@ -12,7 +18,12 @@ interface FinalityViewProps {
 
 export default function FinalityView({ data }: FinalityViewProps) {
   if (!data || !data.data) {
-    return <p className="text-white/60">No finality data available</p>;
+    return (
+      <div className="space-y-3">
+        <p className={stepPanelEmptyTextClass}>No finality data available</p>
+        <StepRawJsonDetails data={data ?? {}} className="mt-0" />
+      </div>
+    );
   }
 
   const checkpoints = data.data;
@@ -66,7 +77,7 @@ export default function FinalityView({ data }: FinalityViewProps) {
       {/* Summary Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-lg p-4">
-          <div className="text-green-400 text-xs font-medium mb-1">Finalized Epoch</div>
+          <div className="text-green-400 text-xs font-medium mb-1">Finalized</div>
           <div className="text-white text-2xl font-bold">{formatNumber(finalized)}</div>
           <div className="text-white/60 text-xs mt-1">Slot {formatNumber(finalizedSlot)}</div>
         </div>
@@ -112,14 +123,18 @@ export default function FinalityView({ data }: FinalityViewProps) {
       </div>
 
       {/* Checkpoint Timeline */}
-      <div className="border border-white/10 rounded-lg p-4">
-        <h4 className="text-white font-semibold mb-3">Finality Timeline</h4>
-        <div className="space-y-3">
+      <div className={stepPanelTableWrapClass}>
+        <div className={stepPanelTableBarClass}>
+          <span className="text-white/90 font-semibold">Finality timeline</span>
+          <span className="text-white/50"> — Casper-FFG checkpoints</span>
+        </div>
+        <div className="p-4">
+          <div className="space-y-3">
           {/* Finalized */}
           <div className="flex items-start gap-3 pb-3 border-b border-white/10">
             <div className="flex-shrink-0 w-24 text-green-400 font-medium text-sm">Finalized</div>
             <div className="flex-1">
-              <div className="text-white font-mono text-sm">Epoch {formatNumber(finalized)}</div>
+              <div className="text-white font-mono text-sm">{formatNumber(finalized)}</div>
               <div className="text-white/60 text-xs mt-1">
                 Root: <span className="font-mono">{checkpoints.finalized?.root?.slice(0, 18)}...</span>
               </div>
@@ -133,7 +148,7 @@ export default function FinalityView({ data }: FinalityViewProps) {
           <div className="flex items-start gap-3 pb-3 border-b border-white/10">
             <div className="flex-shrink-0 w-24 text-blue-400 font-medium text-sm">Justified</div>
             <div className="flex-1">
-              <div className="text-white font-mono text-sm">Epoch {formatNumber(currentJustified)}</div>
+              <div className="text-white font-mono text-sm">{formatNumber(currentJustified)}</div>
               <div className="text-white/60 text-xs mt-1">
                 Root: <span className="font-mono">{checkpoints.current_justified?.root?.slice(0, 18)}...</span>
               </div>
@@ -147,11 +162,12 @@ export default function FinalityView({ data }: FinalityViewProps) {
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 w-24 text-purple-400 font-medium text-sm">Prev Justified</div>
             <div className="flex-1">
-              <div className="text-white font-mono text-sm">Epoch {formatNumber(previousJustified)}</div>
+              <div className="text-white font-mono text-sm">{formatNumber(previousJustified)}</div>
               <div className="text-white/60 text-xs mt-1">
                 Root: <span className="font-mono">{checkpoints.previous_justified?.root?.slice(0, 18)}...</span>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -178,6 +194,8 @@ export default function FinalityView({ data }: FinalityViewProps) {
           </div>
         </div>
       </div>
+
+      <StepRawJsonDetails data={data} />
     </div>
   );
 }

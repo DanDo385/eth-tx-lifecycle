@@ -32,16 +32,34 @@ import type { ReactNode } from "react";
  * @param children - Panel content (any React nodes)
  * @param id - Optional ID for the section (enables anchor links like #mempool)
  */
-export default function Panel({ title, children, id }: { title: string; children: ReactNode; id?: string }) {
+type PanelVariant = "default" | "alt";
+
+export default function Panel({
+  title,
+  children,
+  id,
+  variant = "default"
+}: {
+  title: string;
+  children: ReactNode;
+  id?: string;
+  /** Alternate stripe styling when multiple panels stack on the page */
+  variant?: PanelVariant;
+}) {
   // Generate heading ID from section ID for accessibility linking
   // Example: id="mempool" -> headingId="mempool-title"
   const headingId = id ? `${id}-title` : undefined;
+
+  const shell =
+    variant === "alt"
+      ? "rounded-2xl border border-purple-500/25 bg-gradient-to-br from-purple-950/40 to-panel/90 p-4 md:p-6 my-4"
+      : "rounded-2xl bg-panel/80 border border-white/10 p-4 md:p-6 my-4";
 
   return (
     <section
       id={id}  // Enables anchor links: <a href="#mempool">Jump to mempool</a>
       aria-labelledby={headingId}  // Links section to its heading for screen readers
-      className="rounded-2xl bg-panel/80 border border-white/10 p-4 md:p-6 my-4"
+      className={shell}
     >
       {/* Panel title - neon blue for visual pop */}
       <h2 id={headingId} className="text-neon-blue font-semibold text-xl mb-3">

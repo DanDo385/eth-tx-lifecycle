@@ -1,18 +1,21 @@
 # AGENTS.md
 
-Canonical agent instructions for this repository.
+Single source of truth for AI coding assistants working in this repository (Cursor, Claude Code, and similar).
 
-Do not add separate root-level `.cursorrules`, `CLAUDE.md`, `GEMINI.md`, or tool-specific instruction files unless a tool absolutely requires a shim. If a shim is required, it must only point back to this file and must not contain independent rules.
+## Agent configuration
+
+- **This file is the only root-level agent instruction document.** Keep all substantive rules here.
+- Do not add parallel root-level copies (`.cursorrules`, `CLAUDE.md`, `GEMINI.md`, tool-specific rule dumps, and so on) unless an external tool **requires** a particular filename; if it does, that file must only point back to this document.
+
+---
 
 ## Project purpose
 
 `eth-tx-lifecycle` is an educational Ethereum transaction lifecycle visualizer. It turns the invisible path after a wallet user clicks send into a guided product experience: mempool, builders, relays, validators, finality, and MEV.
 
-Demo focus: Ethereum transaction lifecycle walkthrough.
-
 ## Demo principle
 
-This should feel like a natural project walkthrough for a smart non-specialist.
+The main explorer should feel like a clear end-to-end story for a smart non-specialist.
 The goal is not to flex jargon. The goal is to make Ethereum's transaction pipeline legible without losing technical accuracy.
 
 ## Architecture
@@ -32,13 +35,11 @@ The goal is not to flex jargon. The goal is to make Ethereum's transaction pipel
 
 - Keep explanations beginner-friendly but not condescending.
 - Always convert hex/wei/gwei values into human-readable units before display.
-- Preserve the `transaction lifecycleDemoDirector` and `DEMO_GUIDE.md` narrative flow.
 - Prefer visual hierarchy, tooltips, and concise explanations over raw JSON.
 
 ## Documentation rules
 
 - README must match current commands, ports, endpoints, and demo positioning.
-- Update `DEMO_GUIDE.md` when adding or rearranging demo-facing UI.
 
 ## Verification
 

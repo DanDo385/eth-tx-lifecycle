@@ -5,7 +5,15 @@
  * Separates MEV-Boost blocks (built by professionals) from vanilla blocks (built locally).
  */
 import React from 'react';
-import { weiToEth, hexToNumber, formatNumber, shortenHash, getBuilderName, slotToEpoch, blockNumberToNumber } from '../utils/format';
+import { weiToEth, hexToNumber, formatNumber, getBuilderName, blockNumberToNumber } from '../utils/format';
+import StepRawJsonDetails from './StepRawJsonDetails';
+import {
+  STEP_TABLE_PREVIEW_LIMIT,
+  stepPanelTableBarClass,
+  stepPanelTableFootnoteClass,
+  stepPanelTableWrapClass,
+  stepPanelEmptyTextClass,
+} from './stepPanelConstants';
 
 interface BeaconHeadersViewProps {
   data: {
@@ -16,10 +24,16 @@ interface BeaconHeadersViewProps {
 
 export default function BeaconHeadersView({ data }: BeaconHeadersViewProps) {
   if (!data || !data.headers || data.headers.length === 0) {
-    return <p className="text-white/60">No beacon headers found</p>;
+    return (
+      <div className="space-y-3">
+        <p className={stepPanelEmptyTextClass}>No beacon headers found</p>
+        <StepRawJsonDetails data={data ?? {}} className="mt-0" />
+      </div>
+    );
   }
 
   const headers = data.headers;
+  const displayedHeaders = headers.slice(0, STEP_TABLE_PREVIEW_LIMIT);
 
   // Separate blocks with and without MEV payments
   const mevBlocks = headers.filter(h => h.builder_payment_eth);
@@ -104,13 +118,15 @@ export default function BeaconHeadersView({ data }: BeaconHeadersViewProps) {
       </div>
 
       {/* Headers Table */}
-      <div className="border border-white/10 rounded-lg overflow-hidden">
+      <div className={stepPanelTableWrapClass}>
+        <div className={stepPanelTableBarClass}>
+          Showing {displayedHeaders.length} of {formatNumber(headers.length)} proposed blocks below.
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-white/5 border-b border-white/10">
               <tr>
                 <th className="text-left p-3 text-white/80 font-medium">Slot</th>
-                <th className="text-left p-3 text-white/80 font-medium">Epoch</th>
                 <th className="text-left p-3 text-white/80 font-medium">Block #</th>
                 <th className="text-left p-3 text-white/80 font-medium">Type</th>
                 <th className="text-left p-3 text-white/80 font-medium">Builder</th>
@@ -120,9 +136,7 @@ export default function BeaconHeadersView({ data }: BeaconHeadersViewProps) {
               </tr>
             </thead>
             <tbody>
-              {headers.slice(0, 20).map((header, idx) => {
-                const slot = header.slot ? parseInt(header.slot) : 0;
-                const epoch = slotToEpoch(slot);
+              {displayedHeaders.map((header, idx) => {
                 const payment = header.builder_payment_eth ? weiToEth(header.builder_payment_eth) : null;
                 const gasUsed = header.gas_used ? hexToNumber(header.gas_used) : 0;
                 const gasLimit = header.gas_limit ? hexToNumber(header.gas_limit) : 0;
@@ -133,7 +147,6 @@ export default function BeaconHeadersView({ data }: BeaconHeadersViewProps) {
                 return (
                   <tr key={idx} className="border-b border-white/5 hover:bg-white/5">
                     <td className="p-3 text-white/90 font-mono">{header.slot || 'N/A'}</td>
-                    <td className="p-3 text-white/70 font-mono">{epoch}</td>
                     <td className="p-3 text-white/90 font-mono">
                       {header.block_number ? blockNumberToNumber(header.block_number).toLocaleString() : 'N/A'}
                     </td>
@@ -180,9 +193,14 @@ export default function BeaconHeadersView({ data }: BeaconHeadersViewProps) {
         </div>
       </div>
 
-      {headers.length > 20 && (
-        <p className="text-white/50 text-xs text-center">Showing 20 of {headers.length} headers</p>
+      {headers.length > STEP_TABLE_PREVIEW_LIMIT && (
+        <p className={stepPanelTableFootnoteClass}>
+          Showing {STEP_TABLE_PREVIEW_LIMIT} of {formatNumber(headers.length)} headers. Summary metrics above include all{' '}
+          {formatNumber(headers.length)} blocks.
+        </p>
       )}
+
+      <StepRawJsonDetails data={data} />
     </div>
   );
 }
