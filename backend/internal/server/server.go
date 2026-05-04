@@ -8,11 +8,11 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -84,32 +84,7 @@ func handleRelaysDelivered(w http.ResponseWriter, _ *http.Request) {
 		writeErr(w, http.StatusTooManyRequests, "RELAY", "Failed to fetch delivered payloads", "MEV relays may be rate limiting or unavailable")
 		return
 	}
-	// Merge and dedupe by block_hash (same payload can appear on multiple relays)
-	seen := make(map[string]bool)
-	var deliveredPayloads []map[string]any
-	for _, raw := range bodies {
-		var list []map[string]any
-		if json.Unmarshal(raw, &list) != nil {
-			continue
-		}
-		for _, b := range list {
-			key := ""
-			if h, ok := b["block_hash"].(string); ok && h != "" {
-				key = h
-			} else {
-				s, bn := b["slot"], b["block_number"]
-				if s != nil || bn != nil {
-					key = fmt.Sprintf("%v-%v", s, bn)
-				}
-			}
-			if key != "" && !seen[key] {
-				seen[key] = true
-				deliveredPayloads = append(deliveredPayloads, b)
-			} else if key == "" {
-				deliveredPayloads = append(deliveredPayloads, b)
-			}
-		}
-	}
+	deliveredPayloads := domain.MergeDeliveredPayloads(bodies)
 	var latestBlockNum uint64
 	if rawBlockNum, err := eth.Call("eth_blockNumber", []any{}); err == nil {
 		var blockNumStr string
@@ -136,33 +111,9 @@ func handleRelaysReceived(w http.ResponseWriter, _ *http.Request) {
 		path := fmt.Sprintf("/relay/v1/data/bidtraces/builder_blocks_received?slot=%s&limit=%d", slot, relayReceivedLimit)
 		allBodies, err = relay.GetFromAllRelays(path)
 	}
-	// Merge and dedupe by block_hash (same proposal can appear on multiple relays).
-	seen := make(map[string]bool)
 	var receivedBlocks []map[string]any
 	if err == nil {
-		for _, body := range allBodies {
-			var batch []map[string]any
-			if json.Unmarshal(body, &batch) != nil {
-				continue
-			}
-			for _, b := range batch {
-				key := ""
-				if h, ok := b["block_hash"].(string); ok && h != "" {
-					key = h
-				} else {
-					s, pk := b["slot"], b["builder_pubkey"]
-					if s != nil || pk != nil {
-						key = fmt.Sprintf("%v-%v", s, pk)
-					}
-				}
-				if key != "" && !seen[key] {
-					seen[key] = true
-					receivedBlocks = append(receivedBlocks, b)
-				} else if key == "" {
-					receivedBlocks = append(receivedBlocks, b)
-				}
-			}
-		}
+		receivedBlocks = domain.MergeReceivedBlocks(allBodies)
 	}
 	// Fallback: if received is empty or failed, use delivered payloads so the user sees something.
 	// Many relays expose proposer_payload_delivered; builder_blocks_received may be missing or empty.
@@ -171,30 +122,7 @@ func handleRelaysReceived(w http.ResponseWriter, _ *http.Request) {
 		pathDel := fmt.Sprintf("/relay/v1/data/bidtraces/proposer_payload_delivered?limit=%d", relayDeliveredLimit)
 		bodiesDel, errDel := relay.GetFromAllRelays(pathDel)
 		if errDel == nil && len(bodiesDel) > 0 {
-			seenDel := make(map[string]bool)
-			for _, body := range bodiesDel {
-				var batch []map[string]any
-				if json.Unmarshal(body, &batch) != nil {
-					continue
-				}
-				for _, b := range batch {
-					key := ""
-					if h, ok := b["block_hash"].(string); ok && h != "" {
-						key = h
-					} else {
-						s, bn := b["slot"], b["block_number"]
-						if s != nil || bn != nil {
-							key = fmt.Sprintf("%v-%v", s, bn)
-						}
-					}
-					if key != "" && !seenDel[key] {
-						seenDel[key] = true
-						receivedBlocks = append(receivedBlocks, b)
-					} else if key == "" {
-						receivedBlocks = append(receivedBlocks, b)
-					}
-				}
-			}
+			receivedBlocks = domain.MergeDeliveredPayloads(bodiesDel)
 			fallbackDelivered = len(receivedBlocks) > 0
 		}
 	}
@@ -319,7 +247,7 @@ func handleMEV(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		status := http.StatusInternalServerError
 		hint := ""
-		if strings.Contains(err.Error(), "Too Many Requests") || strings.Contains(err.Error(), "-32005") {
+		if errors.Is(err, eth.ErrRateLimited) {
 			status = http.StatusTooManyRequests
 			hint = "RPC provider is rate limiting. Wait a moment and try again, or use a dedicated RPC endpoint."
 		}
@@ -360,6 +288,14 @@ func handleTrackTx(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := domain.TrackTx(hash)
 	if err != nil {
+		if errors.Is(err, eth.ErrRateLimited) {
+			writeErr(w, http.StatusTooManyRequests, "RPC_RATE_LIMIT", "Upstream RPC is rate limiting this request", "Wait a moment and retry, or configure a dedicated RPC endpoint.")
+			return
+		}
+		if errors.Is(err, eth.ErrNullResult) {
+			writeErr(w, http.StatusNotFound, "TX_NOT_FOUND", "Transaction not visible on this execution node", "")
+			return
+		}
 		writeErr(w, http.StatusNotFound, "TX_NOT_FOUND", "Transaction not visible on this execution node", "")
 		return
 	}

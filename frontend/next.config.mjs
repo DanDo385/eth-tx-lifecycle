@@ -18,6 +18,9 @@ const nextConfig = {
 
   // CSP headers for both development and production
   async headers() {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const connectSrc = isProduction ? "'self'" : "'self' http: https: ws: wss:";
+
     return [
       {
         source: '/:path*',
@@ -25,7 +28,7 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value:
-              "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: blob: https:; connect-src 'self' http: https: ws: wss:; worker-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'",
+              `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: blob: https:; connect-src ${connectSrc}; worker-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'`,
           },
         ],
       },

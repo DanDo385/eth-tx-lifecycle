@@ -3,6 +3,7 @@ package domain
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -31,20 +32,26 @@ type trackTx struct {
 // TrackTx returns the full lifecycle data for a transaction (or "latest").
 func TrackTx(hash string) (map[string]any, error) {
 	if hash == "" {
-		return nil, nil
+		return nil, fmt.Errorf("missing transaction hash")
 	}
 	if strings.EqualFold(hash, "latest") {
 		rawBlockNum, err := eth.Call("eth_blockNumber", []any{})
-		if err != nil || string(rawBlockNum) == "null" {
-			return nil, err
+		if err != nil {
+			return nil, fmt.Errorf("resolve latest block number: %w", err)
+		}
+		if string(rawBlockNum) == "null" {
+			return nil, fmt.Errorf("resolve latest block number: %w", eth.ErrNullResult)
 		}
 		var blockNumStr string
-		if json.Unmarshal(rawBlockNum, &blockNumStr) != nil {
-			return nil, nil
+		if err := json.Unmarshal(rawBlockNum, &blockNumStr); err != nil {
+			return nil, fmt.Errorf("decode latest block number: %w", err)
 		}
 		rawBlock, err := eth.Call("eth_getBlockByNumber", []any{blockNumStr, true})
-		if err != nil || string(rawBlock) == "null" {
-			return nil, err
+		if err != nil {
+			return nil, fmt.Errorf("resolve latest block payload: %w", err)
+		}
+		if string(rawBlock) == "null" {
+			return nil, fmt.Errorf("resolve latest block payload: %w", eth.ErrNullResult)
 		}
 		var blk struct {
 			Transactions []struct {
@@ -54,8 +61,11 @@ func TrackTx(hash string) (map[string]any, error) {
 				Input string  `json:"input"`
 			} `json:"transactions"`
 		}
-		if json.Unmarshal(rawBlock, &blk) != nil || len(blk.Transactions) == 0 {
-			return nil, nil
+		if err := json.Unmarshal(rawBlock, &blk); err != nil {
+			return nil, fmt.Errorf("decode latest block payload: %w", err)
+		}
+		if len(blk.Transactions) == 0 {
+			return nil, fmt.Errorf("latest block has no transactions")
 		}
 		hash = ""
 		for _, tx := range blk.Transactions {
@@ -81,12 +91,15 @@ func TrackTx(hash string) (map[string]any, error) {
 	}
 
 	rawTx, err := eth.Call("eth_getTransactionByHash", []any{hash})
-	if err != nil || string(rawTx) == "null" {
-		return nil, err
+	if err != nil {
+		return nil, fmt.Errorf("fetch transaction by hash: %w", err)
+	}
+	if string(rawTx) == "null" {
+		return nil, fmt.Errorf("fetch transaction by hash: %w", eth.ErrNullResult)
 	}
 	var t trackTx
-	if json.Unmarshal(rawTx, &t) != nil {
-		return nil, nil
+	if err := json.Unmarshal(rawTx, &t); err != nil {
+		return nil, fmt.Errorf("decode transaction payload: %w", err)
 	}
 	pending := t.BlockNumber == nil
 	economics := map[string]any{"value": t.Value, "gas_limit": t.Gas}

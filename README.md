@@ -1,18 +1,6 @@
-# eth-tx-lifecycle - Ethereum Transaction Visualizer
+# eth-tx-lifecycle - Ethereum Transaction Lifecycle Visualizer
 
-**An educational tool for understanding how Ethereum really works** - from your first "send" click to permanent blockchain finality.
-
-Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows real-time data from the Ethereum network with detailed explanations, analogies, and interactive learning tools.
-
-## Portfolio demo package
-
-- Loom guide: [`DEMO_GUIDE.md`](./DEMO_GUIDE.md)
-- Demo focus: Ethereum transaction lifecycle walkthrough
-- Recommended primary video: 45-60 seconds
-- Clean recording route: `http://localhost:3000/walkthrough`
-- Best GIF loop: package tracker auto-tour → mempool → builder/relay → validator → finality
-- Thumbnail hook: `YOU CLICKED SEND. NOW WHAT?`
-
+`eth-tx-lifecycle` is a full-stack educational explorer that makes Ethereum's post-click transaction pipeline legible: mempool visibility, proposer-builder separation (PBS), relay delivery, beacon proposal, and Casper finality. A Go backend aggregates heterogeneous upstreams (execution JSON-RPC, consensus REST, and MEV relays) with timeouts, fallback behavior, and caching; a Next.js frontend turns raw chain data into a guided, interview-ready systems narrative. The project is intentionally positioned at the TradFi + DeFi intersection: explainability for non-specialists, while still exposing enough mechanics for technical reviewers.
 
 ## What You'll Learn
 
@@ -25,14 +13,14 @@ Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows 
 
 ## Features
 
-### For Complete Beginners
+### For Beginners
 - **Interactive Glossary** - 40+ terms organized by category with hover definitions
-- **Step-by-Step Guide** - Numbered walkthrough explaining each panel
+- **Step-by-Step Guide** - Numbered on-page guide explaining each panel
 - **Real-World Analogies** - Post office metaphors, concert ticket scalpers, bank comparisons
 - **Educational Tooltips** - Detailed explanations throughout with "why this matters" sections
 - **Visual Metrics** - User-friendly cards showing gas prices, transaction counts, validator earnings
 
-### Advanced Features
+### Advanced / Infra-Focused
 - **Real-Time Data** - Live transactions, blocks, and validator data from Ethereum mainnet
 - **Transaction Tracking** - Follow any transaction hash (or enter "latest") through its complete lifecycle
 - **Smart Transaction Decoding** - Identifies swaps, transfers, approvals, mints, claims, and contract calls using receipt analysis
@@ -40,13 +28,23 @@ Perfect for beginners with zero cryptocurrency knowledge! This visualizer shows 
 - **Builder Competition** - See multiple builders bidding for the same block slot
 - **Finality Monitoring** - Watch Casper-FFG checkpoints in action
 
-### Technical
+### Technical Foundations
 - **No Local Node Required** - Uses public APIs (Alchemy/Infura JSON-RPC, Beacon API, MEV relays like Flashbots)
 - **Parallel Data Fetching** - Goroutines with bounded worker pools for fast API responses
 - **Generic TTL Cache** - Shared cache implementation across all data sources
 - **Responsive Design** - Works on desktop, tablet, mobile
 - **Dark Theme** - Easy on the eyes for extended learning sessions
 - **Health Monitoring** - Liveness and readiness probes for all data sources
+
+## For Technical Reviewers
+
+If you are evaluating this project for solutions architecture, technical BD, or infrastructure engineering roles, focus on:
+
+- **Multi-source data stitching**: one API response aggregates execution, consensus, and relay data.
+- **Failure-aware behavior**: upstream timeouts, cache fallback, and rate-limit handling instead of a single happy path.
+- **Typed contracts at boundaries**: consistent backend envelope + typed frontend API contracts.
+- **Operational hygiene**: health/readiness endpoints, CI checks, and environment-driven configuration.
+- **Domain fluency**: transaction lifecycle, validator economics, and MEV mechanics explained with implementation context.
 
 ## Quick Start
 
@@ -162,7 +160,7 @@ Click **"6) MEV detector"** and enter "latest" or a specific block number to sca
 |                                                            |
 |  Next.js Frontend with Educational Components              |
 |  - Interactive Glossary (40+ terms)                        |
-|  - Step-by-step Walkthrough                                |
+|  - Step-by-step on-page guide                              |
 |  - User-friendly Metric Cards                              |
 |  - Transaction decoder (swap, transfer, approve, etc.)     |
 +----------------------------+-------------------------------+
@@ -192,6 +190,38 @@ Click **"6) MEV detector"** and enter "latest" or a specific block number to sca
 - **Public APIs**: No blockchain sync required (saves 500+ GB disk space!)
 - **Generic Cache**: Single `Cache[V any]` type shared across beacon, relay, and snapshot modules
 - **API Proxy**: Configurable proxy mode (`next.config.mjs` rewrites by default, `PROXY_MODE=route` for Railway/Vercel)
+
+## Key Design Decisions
+
+1. **Single response envelope (`data`/`error`)**  
+   Every backend endpoint returns the same shape, which simplifies frontend error handling and keeps demo behavior predictable under partial failures.
+
+2. **Parallel fetch + bounded time budgets**  
+   RPC providers are raced and relay requests use a budget window to avoid slow upstreams dominating user-facing latency.
+
+3. **Graceful degradation over strict failure**  
+   When a preferred upstream endpoint is empty/unavailable, the app falls back to adjacent data so the learning flow still works.
+
+4. **UI optimized for explanation, not raw telemetry**  
+   Values are converted from hex/wei/gwei into human units, and each panel explains why the metric matters.
+
+5. **Configuration-first runtime behavior**  
+   Timeouts, relay URLs, cache TTLs, and analysis limits are all driven by env vars to keep deployments portable.
+
+## What I'd Do Differently in Production
+
+- Add structured JSON logging (`slog`) with request IDs and correlation across upstream calls.
+- Add explicit rate limiting and abuse protection on expensive analysis endpoints.
+- Add OpenTelemetry traces + RED metrics for route-level latency/error monitoring.
+- Expand integration tests with fixture-backed upstream mocks and contract testing.
+- Replace canary frontend dependency pin with stable release policy + automated dependency updates.
+
+## Tech Stack (and Why)
+
+- **Go (backend)**: explicit concurrency primitives and predictable runtime for multi-upstream aggregation.
+- **Next.js + React + TypeScript (frontend)**: rapid UI iteration for educational storytelling plus type-safe contracts.
+- **Tailwind CSS**: quick, consistent visual hierarchy without heavy component-framework lock-in.
+- **GitHub Actions**: low-friction CI gate for test/build/lint quality checks.
 
 ## Project Structure
 
@@ -260,8 +290,7 @@ eth-tx-lifecycle/
 │   └── start-frontend.sh              # Start Next.js dev server
 ├── Makefile                           # Build/start/stop commands
 ├── .env.local                         # Environment configuration (not committed)
-├── CLAUDE.md                          # AI assistant documentation
-├── .cursorrules                       # Cursor IDE rules
+├── AGENTS.md                          # AI/agent instructions for this repo
 └── README.md                          # This file
 ```
 
@@ -293,44 +322,54 @@ eth-tx-lifecycle/
 
 ## Configuration
 
-The application uses `.env.local` at the repository root. Key variables:
+Copy the template and edit only what you need:
 
 ```bash
-# Ethereum RPC (execution layer)
-RPC_HTTP_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
-RPC_WS_URL=wss://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
-RPC_TIMEOUT_SECONDS=5
-
-# Beacon API (consensus layer)
-BEACON_API_URL=https://beacon.prylabs.net
-UPSTREAM_TIMEOUT_SECONDS=3
-
-# MEV Relays (comma-separated)
-RELAY_URLS=https://boost-relay.flashbots.net,https://agnostic-relay.net
-RELAY_BUDGET_MS=2500
-
-# Server / Frontend
-GOAPI_ADDR=:8080
-WEB_PORT=3000
-GOAPI_ORIGIN=http://localhost:8080
-
-# Frontend Proxy (for Railway/Vercel deployments)
-PROXY_MODE=                  # Set to "route" for server-side proxy
-
-# Caching
-CACHE_TTL_SECONDS=30
-ERROR_CACHE_TTL_SECONDS=15
-SNAPSHOT_TTL_SECONDS=30      # Used by SnapshotTTL helper
-
-# MEV Detection
-MEV_MAX_TX=400               # Max transactions to scan per block
-MEV_WORKERS=10               # Parallel receipt fetch workers
-
-# Mempool
-MEMPOOL_DISABLE=false        # Set to true/1 for mock data
+cp .env.example .env.local
 ```
 
-**Note**: `GOAPI_ORIGIN` is used by the Next.js proxy target and by the Go backend for CORS allow-origin (backend default is `http://localhost:3000` if unset). The default public endpoints work for learning; change them only if you want to use your own API keys or local nodes.
+### Environment Variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `GOAPI_ORIGIN` | Frontend API proxy target and backend CORS origin | `http://localhost:8080` (frontend), `http://localhost:3000` (backend CORS fallback) |
+| `PROXY_MODE` | Optional route-based proxy mode (`route`) | unset |
+| `ENABLE_TEST_API_ROUTE` | Keep `/api/test` enabled in production | `false` |
+| `GOAPI_ADDR` | Backend listen address | `:8080` |
+| `PORT` | Fallback backend port (used when `GOAPI_ADDR` unset) | `8080` |
+| `RPC_HTTP_URL` | Primary execution-layer RPC endpoint | public endpoint fallback |
+| `RPC_HTTP_URL1..10` | Optional multi-provider RPC failover/racing | unset |
+| `RPC_WS_URL` | Optional websocket endpoint for source display | unset |
+| `RPC_TIMEOUT_SECONDS` | Execution RPC timeout (1-60) | `5` |
+| `BEACON_API_URL` | Consensus-layer API endpoint | `https://beacon.prylabs.net` |
+| `RELAY_URLS` | Comma-separated MEV relay base URLs | built-in public list |
+| `RELAY_BUDGET_MS` | Total relay fanout budget per request | `2500` |
+| `UPSTREAM_TIMEOUT_SECONDS` | HTTP timeout for beacon/relay clients | `3` |
+| `CACHE_TTL_SECONDS` | Success cache TTL for upstream responses | `20` |
+| `ERROR_CACHE_TTL_SECONDS` | Error cache TTL | `10` |
+| `SNAPSHOT_TTL_SECONDS` | Snapshot cache override | `30` |
+| `MEMPOOL_DISABLE` | Disable live mempool and use mock data | `false` |
+| `MEV_MAX_TX` | Max tx scanned per block during MEV analysis | `400` |
+| `MEV_WORKERS` | Parallel workers for MEV receipt fetching | `10` |
+
+The defaults are chosen for local demos. For evaluator-facing demos, use your own RPC key(s) and keep relay lists explicit in `.env.local`.
+
+## Demo Assets to Capture
+
+Add these assets under `docs/assets/` and reference them in this README:
+
+1. **`overview-flow.png`**: Main screen with transaction flow diagram and step buttons visible.
+2. **`builder-vs-delivered.gif`**: Toggle between Builders → Relays and Relays → Validators to show auction vs winner.
+3. **`track-lifecycle.png`**: Transaction tracker showing decoded action, economics, inclusion, and finality context.
+4. **`health-and-sources.png`**: Health endpoint output + in-app source attribution labels.
+
+Example markdown placeholders:
+
+```md
+![Overview flow](docs/assets/overview-flow.png)
+![Builder auction to winner](docs/assets/builder-vs-delivered.gif)
+![Transaction lifecycle drilldown](docs/assets/track-lifecycle.png)
+```
 
 ## Troubleshooting
 

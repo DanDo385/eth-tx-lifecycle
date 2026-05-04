@@ -16,26 +16,37 @@ import RelayDeliveredView from "./components/RelayDeliveredView";
 import BeaconHeadersView from "./components/BeaconHeadersView";
 import FinalityView from "./components/FinalityView";
 import MEVView from "./components/MEVView";
-import TransactionWalkthroughDemoDirector from "./components/TransactionWalkthroughDemoDirector";
+import MempoolView from "./components/MempoolView";
 import { weiToEth, formatNumber } from "./utils/format";
+import type {
+  EduEnvelope,
+  MempoolData,
+  RelayDeliveredData,
+  RelayReceivedData,
+  BeaconHeadersData,
+  FinalityData,
+  MevData,
+  SnapshotData,
+  SourcesInfo,
+  TrackTxData,
+} from "./types/api";
 
 // Type aliases to make the code more readable
-type Any = any; // TODO: replace with proper types when we have time
 type ErrState = { title: string; message?: string; hint?: string } | null;
 
 export default function Page() {
   // State for each data panel - mempool, relays, beacon, etc
   // These hold the raw data from our backend endpoints
-  const [mempool, setMempool] = useState<Any>(null);
-  const [received, setReceived] = useState<Any>(null);
-  const [delivered, setDelivered] = useState<Any>(null);
-  const [headers, setHeaders] = useState<Any>(null);
-  const [finality, setFinality] = useState<Any>(null);
-  const [mev, setMev] = useState<Any>(null);
+  const [mempool, setMempool] = useState<MempoolData | null>(null);
+  const [received, setReceived] = useState<RelayReceivedData | null>(null);
+  const [delivered, setDelivered] = useState<RelayDeliveredData | null>(null);
+  const [headers, setHeaders] = useState<BeaconHeadersData | null>(null);
+  const [finality, setFinality] = useState<FinalityData | null>(null);
+  const [mev, setMev] = useState<{ data: MevData } | null>(null);
   const [mevBlock, setMevBlock] = useState<string>("latest"); // Block to analyze for MEV
-  const [sources, setSources] = useState<Any>(null); // API endpoint info
+  const [sources, setSources] = useState<SourcesInfo | null>(null); // API endpoint info
   const [trackHash, setTrackHash] = useState<string>(""); // User input for tx tracking
-  const [tracked, setTracked] = useState<Any>(null); // Result of tx tracking
+  const [tracked, setTracked] = useState<TrackTxData | null>(null); // Result of tx tracking
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackDetailsHidden, setTrackDetailsHidden] = useState(false);
   const [error, setError] = useState<ErrState>(null);
@@ -83,7 +94,21 @@ export default function Page() {
   // safeFetch wraps fetch with error handling and user-friendly messages
   // All our API calls go through this to provide consistent error UX
   // This was a pain point - users were seeing cryptic errors before we added this
-  async function safeFetch(url: string, init?: RequestInit) {
+  function hasEnvelopeData<T>(value: unknown): value is EduEnvelope<T> {
+    return typeof value === "object" && value !== null && ("data" in (value as Record<string, unknown>) || "error" in (value as Record<string, unknown>));
+  }
+
+  function unwrapData<T>(value: EduEnvelope<T> | T | string | null): T | null {
+    if (value == null || typeof value === "string") {
+      return null;
+    }
+    if (hasEnvelopeData<T>(value)) {
+      return value.data ?? null;
+    }
+    return value as T;
+  }
+
+  async function safeFetch<T>(url: string, init?: RequestInit): Promise<EduEnvelope<T> | T | string | null> {
     setError(null);
     try {
       const res = await fetch(url, init);
@@ -99,7 +124,7 @@ export default function Page() {
         return await res.text();
       }
 
-      const payload = await res.json();
+      const payload = await res.json() as EduEnvelope<T>;
 
       // Check for errors in the response
       if (!res.ok || payload?.error) {
@@ -196,10 +221,9 @@ export default function Page() {
       qs.set("block", block || mempool?.lastBlock || "latest");
     }
 
-    const result = await safeFetch(`/api/snapshot${qs.toString() ? '?' + qs.toString() : ''}`);
-    if (!result) return;
-
-    const d = result.data ?? result; // Handle both wrapped and unwrapped responses
+    const result = await safeFetch<SnapshotData>(`/api/snapshot${qs.toString() ? '?' + qs.toString() : ''}`);
+    const d = unwrapData<SnapshotData>(result);
+    if (!d) return;
 
     // Update all our state from the snapshot response
     // This is where we populate all the UI panels with fresh data
@@ -234,6 +258,9 @@ export default function Page() {
     setLastSnapAt(now); // Update throttle timestamp
   }
 
+  const mempoolMetrics = mempool?.metrics;
+  const avgGasPrice = mempoolMetrics?.avgGasPrice ?? 0;
+
   return (
     <main className="max-w-6xl mx-auto px-4 pb-12">
       <header className="my-6 space-y-4">
@@ -245,7 +272,7 @@ export default function Page() {
           </div>
 
           <div className="space-y-3 text-white/90">
-            <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+            <div className="rounded-lg p-4 border border-cyan-500/20 bg-gradient-to-br from-cyan-950/35 to-black/20">
               <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
                 <span className="text-xl">🤔</span> What is this tool?
               </h3>
@@ -256,7 +283,7 @@ export default function Page() {
               </p>
             </div>
 
-            <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+            <div className="rounded-lg p-4 border border-purple-500/25 bg-gradient-to-br from-purple-950/35 to-black/20">
               <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
                 <span className="text-xl">💡</span> What you'll learn:
               </h3>
@@ -340,9 +367,7 @@ export default function Page() {
         )}
       </header>
 
-      <TransactionWalkthroughDemoDirector />
-
-      {/* Step-by-Step Walkthrough Guide */}
+      {/* Step-by-step on-page guide */}
       {/* This guide was essential - users didn't know where to start */}
       <div className="my-6 bg-gradient-to-br from-green-500/10 to-cyan-500/10 border border-green-500/30 rounded-lg p-6">
         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
@@ -350,7 +375,7 @@ export default function Page() {
         </h3>
 
         <div className="space-y-4 text-sm">
-          <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+          <div className="rounded-lg p-4 border border-cyan-500/20 bg-gradient-to-br from-cyan-950/35 to-black/20">
             <div className="flex items-start gap-3">
               <span className="text-2xl font-bold text-green-400">1</span>
               <div className="flex-1">
@@ -371,7 +396,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+          <div className="rounded-lg p-4 border border-purple-500/25 bg-gradient-to-br from-purple-950/35 to-black/20">
             <div className="flex items-start gap-3">
               <span className="text-2xl font-bold text-purple-400">2-3</span>
               <div className="flex-1">
@@ -392,7 +417,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+          <div className="rounded-lg p-4 border border-cyan-500/20 bg-gradient-to-br from-cyan-950/35 to-black/20">
             <div className="flex items-start gap-3">
               <span className="text-2xl font-bold text-blue-400">4</span>
               <div className="flex-1">
@@ -410,7 +435,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+          <div className="rounded-lg p-4 border border-purple-500/25 bg-gradient-to-br from-purple-950/35 to-black/20">
             <div className="flex items-start gap-3">
               <span className="text-2xl font-bold text-cyan-400">5</span>
               <div className="flex-1">
@@ -428,7 +453,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+          <div className="rounded-lg p-4 border border-cyan-500/20 bg-gradient-to-br from-cyan-950/35 to-black/20">
             <div className="flex items-start gap-3">
               <span className="text-2xl font-bold text-orange-400">6</span>
               <div className="flex-1">
@@ -588,42 +613,42 @@ export default function Page() {
           </div>
 
           {/* Mempool Metrics Summary - these cards show key stats at a glance */}
-          {mempool?.metrics && (
+          {Boolean(mempoolMetrics) && (
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-lg p-4">
                 <div className="text-blue-400 text-xs font-medium mb-1">Total Transactions</div>
-                <div className="text-white text-2xl font-bold">{formatNumber(mempool.count || 0)}</div>
+                <div className="text-white text-2xl font-bold">{formatNumber(mempool?.count || 0)}</div>
               </div>
               <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 rounded-lg p-4">
                 <div className="text-purple-400 text-xs font-medium mb-1">Gas Requested</div>
-                <div className="text-white text-2xl font-bold">{formatNumber(mempool.metrics.totalGasRequested || 0)}</div>
+                <div className="text-white text-2xl font-bold">{formatNumber(mempoolMetrics?.totalGasRequested || 0)}</div>
                 <div className="text-white/60 text-xs mt-1">gas units</div>
               </div>
               <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-lg p-4">
                 <div className="text-green-400 text-xs font-medium mb-1">Total Value</div>
-                <div className="text-white text-2xl font-bold">{weiToEth(mempool.metrics.totalValueWei || '0x0')}</div>
+                <div className="text-white text-2xl font-bold">{weiToEth(mempoolMetrics?.totalValueWei || '0x0')}</div>
                 <div className="text-white/60 text-xs mt-1">ETH</div>
               </div>
               <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-500/20 rounded-lg p-4">
                 <div className="text-orange-400 text-xs font-medium mb-1">Avg Gas Price</div>
-                <div className="text-white text-2xl font-bold">{mempool.metrics.avgGasPrice?.toFixed(2) || '0.00'}</div>
+                <div className="text-white text-2xl font-bold">{avgGasPrice.toFixed(2)}</div>
                 <div className="text-white/60 text-xs mt-1">gwei</div>
               </div>
             </div>
           )}
 
           {/* High Priority Badge - shows when there are expensive transactions */}
-          {mempool?.metrics?.highPriorityCount > 0 && (
+          {(mempoolMetrics?.highPriorityCount || 0) > 0 && (
             <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-full text-sm">
               <span className="text-red-400">🔥</span>
               <span className="text-white/90">
-                {mempool.metrics.highPriorityCount} high-priority tx{mempool.metrics.highPriorityCount !== 1 ? 's' : ''} (&gt;50 gwei)
+                {mempoolMetrics?.highPriorityCount} high-priority tx{mempoolMetrics?.highPriorityCount !== 1 ? 's' : ''} (&gt;50 gwei)
               </span>
             </div>
           )}
 
           {/* Gas Economics Explainer - this helps users understand what they're seeing */}
-          {mempool?.metrics && (
+          {Boolean(mempoolMetrics) && (
             <div className="mt-4 bg-blue-500/5 border border-blue-500/20 rounded-lg p-3 text-sm space-y-2">
               <div className="flex items-start gap-2">
                 <span className="text-blue-400 text-lg">💡</span>
@@ -636,10 +661,10 @@ export default function Page() {
                     <li><strong>Priority Fee / Tip (To Validator):</strong> Extra payment to incentivize miners/validators to include your transaction sooner</li>
                     <li><strong>High Gas = Competition:</strong> Users pay higher priority fees during congestion to get included faster (like bidding in an auction)</li>
                     <li><strong>Total Cost:</strong> You pay (Base Fee + Priority Fee) × Gas Used. Higher tips = faster inclusion</li>
-                    <li><strong>Avg {mempool.metrics.avgGasPrice?.toFixed(2)} gwei:</strong> Current average total gas price in mempool. Network is {mempool.metrics.avgGasPrice > 50 ? 'VERY congested' : mempool.metrics.avgGasPrice > 20 ? 'moderately busy' : 'relatively quiet'}</li>
+                    <li><strong>Avg {avgGasPrice.toFixed(2)} gwei:</strong> Current average total gas price in mempool. Network is {avgGasPrice > 50 ? 'VERY congested' : avgGasPrice > 20 ? 'moderately busy' : 'relatively quiet'}</li>
                   </ul>
                   <div className="text-blue-400 text-xs bg-blue-400/10 border border-blue-400/20 rounded p-2 mt-2">
-                    💰 <strong>Example:</strong> A simple ETH transfer (21,000 gas) at {mempool.metrics.avgGasPrice?.toFixed(2)} gwei costs ~{(21000 * (mempool.metrics.avgGasPrice || 0) / 1e9).toFixed(6)} ETH.
+                    💰 <strong>Example:</strong> A simple ETH transfer (21,000 gas) at {avgGasPrice.toFixed(2)} gwei costs ~{(21000 * avgGasPrice / 1e9).toFixed(6)} ETH.
                     Complex DeFi transactions can use 10x more gas!
                   </div>
                 </div>
@@ -647,10 +672,11 @@ export default function Page() {
             </div>
           )}
 
-          {/* Raw JSON data for developers who want to see the full response */}
-          <pre className="mt-3 overflow-auto max-h-96 text-xs bg-black/40 p-3 rounded-lg border border-white/10">
-            {mempool ? JSON.stringify(mempool, null, 2) : "Loading..."}
-          </pre>
+          {mempool ? (
+            <MempoolView data={mempool} />
+          ) : (
+            <p className="text-white/60 text-sm mt-4">Loading mempool snapshot…</p>
+          )}
           <p className="text-white/60 text-sm mt-2">
             Tip: live feeds use WebSocket <code>eth_subscribe("newPendingTransactions")</code>.
           </p>
@@ -659,7 +685,7 @@ export default function Page() {
 
       {/* Builder blocks received panel - shows MEV competition */}
       {activePanel === "received" && (
-        <Panel id="panel-received" title="Builders → Relays (builder_blocks_received)">
+        <Panel id="panel-received" variant="alt" title="Builders → Relays (builder_blocks_received)">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
             <p className="text-white/70">
               Shows which builders are submitting payloads to relays—this activity lives outside your execution client.
@@ -691,7 +717,7 @@ export default function Page() {
 
       {/* Beacon headers panel - shows actual blocks on-chain */}
       {activePanel === "headers" && (
-        <Panel id="panel-headers" title="Proposed blocks + Builder payments">
+        <Panel id="panel-headers" variant="alt" title="Proposed blocks + Builder payments">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
             <p className="text-white/70">
               Consensus-layer head headers with builder payment data, gas usage, and block utilization metrics.
@@ -723,7 +749,7 @@ export default function Page() {
 
       {/* MEV detector panel - this is the fun one! */}
       {activePanel === "mev" && (
-        <Panel id="panel-mev" title="MEV detector (sandwiches, arbitrage, liquidations, JIT)">
+        <Panel id="panel-mev" variant="alt" title="MEV detector (sandwiches, arbitrage, liquidations, JIT)">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="md:w-2/3 text-white/70">
               Scans a block for swaps where the same address wraps a victim trade in the same pool. Attackers are tinted
@@ -740,9 +766,10 @@ export default function Page() {
               <GlowButton ariaLabel="Analyze block" onClick={async () => {
                 // MEV analysis is expensive so we only do it on demand
                 const target = mevBlock || "latest";
-                const result = await safeFetch(`/api/mev/sandwich?block=${encodeURIComponent(target)}`);
-                if (result) {
-                  setMev(result);
+                const result = await safeFetch<MevData>(`/api/mev/sandwich?block=${encodeURIComponent(target)}`);
+                const data = unwrapData<MevData>(result);
+                if (data) {
+                  setMev({ data });
                 }
               }}>
                 Analyze
@@ -781,11 +808,11 @@ export default function Page() {
             setTrackError(null); // Clear previous tracking errors
             setTrackLoading(true);
             setTrackDetailsHidden(false); // Show details when tracking new transaction
-            const result = await safeFetch(`/api/track/tx/${trackHash}`);
+            const result = await safeFetch<TrackTxData>(`/api/track/tx/${trackHash}`);
             setTrackLoading(false);
-            if (result) {
-              // Unwrap API envelope if present
-              setTracked(result.data ?? result);
+            const data = unwrapData<TrackTxData>(result);
+            if (data) {
+              setTracked(data);
               setTrackError(null); // Clear error on success
             }
             // Note: Errors are handled by the useEffect hook above
@@ -835,7 +862,7 @@ export default function Page() {
       </Panel>
 
       {/* Summary panel explaining the whole process */}
-      <Panel id="panel-wrap" title="Wrap-up: how a tx becomes finalized">
+      <Panel id="panel-wrap" variant="alt" title="Wrap-up: how a tx becomes finalized">
         <ol className="list-decimal pl-5 space-y-1 text-white/80">
           <li>
             <strong>Broadcast</strong>: the transaction reaches public mempools. Visibility depends on which peers relay

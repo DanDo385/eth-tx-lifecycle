@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -24,6 +25,12 @@ var (
 	rpcWS         string
 	rpcHTTPClient *http.Client
 	rpcHealth     *pkg.BaseDataSource
+
+	// Typed errors for downstream callers (server/domain) to make stable decisions.
+	ErrRateLimited = errors.New("rpc rate limited")
+	ErrInvalidJSON = errors.New("rpc invalid json")
+	ErrNullResult  = errors.New("rpc null result")
+	ErrEmptyBody   = errors.New("rpc empty response body")
 )
 
 func init() {
@@ -41,9 +48,13 @@ func init() {
 			rpcProviders = append(rpcProviders, url)
 		}
 	}
-	// Final fallback to public Alchemy demo
+	// Final fallback: no-key public endpoints. Alchemy's shared "demo" key often returns
+	// HTTP 429 with an empty body; race multiple URLs so local demo works without API keys.
 	if len(rpcProviders) == 0 {
-		rpcProviders = append(rpcProviders, "https://eth-mainnet.g.alchemy.com/v2/demo")
+		rpcProviders = append(rpcProviders,
+			"https://ethereum.publicnode.com",
+			"https://eth-mainnet.g.alchemy.com/v2/demo",
+		)
 	}
 
 	rpcWS = config.EnvOr("RPC_WS_URL", "")
@@ -86,21 +97,41 @@ func callOne(url, method string, params any) (json.RawMessage, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
-	body, _ := io.ReadAll(res.Body)
-	var parsed rpcResponse
-	if err := json.Unmarshal(body, &parsed); err != nil {
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
 		return nil, err
 	}
+	trimmed := bytes.TrimSpace(body)
+	if len(trimmed) == 0 {
+		if res.StatusCode == http.StatusTooManyRequests {
+			return nil, fmt.Errorf("%w: empty response body (HTTP %d)", ErrRateLimited, res.StatusCode)
+		}
+		return nil, fmt.Errorf("%w (HTTP %d)", ErrEmptyBody, res.StatusCode)
+	}
+	var parsed rpcResponse
+	if err := json.Unmarshal(trimmed, &parsed); err != nil {
+		if res.StatusCode == http.StatusTooManyRequests {
+			return nil, fmt.Errorf("%w: invalid JSON from provider (HTTP %d): %v", ErrRateLimited, res.StatusCode, err)
+		}
+		return nil, fmt.Errorf("%w (HTTP %d): %v", ErrInvalidJSON, res.StatusCode, err)
+	}
 	if parsed.Error != nil {
-		return nil, errors.New(parsed.Error.Message)
+		// -32005 is commonly used by providers for throughput/rate-limit pressure.
+		if parsed.Error.Code == -32005 || strings.Contains(strings.ToLower(parsed.Error.Message), "too many requests") {
+			return nil, fmt.Errorf("%w: rpc error %d: %s", ErrRateLimited, parsed.Error.Code, parsed.Error.Message)
+		}
+		return nil, fmt.Errorf("rpc error %d: %s", parsed.Error.Code, parsed.Error.Message)
 	}
 	// Detect non-standard error responses (e.g. Infura rate limits)
-	if parsed.Result == nil {
+	if parsed.Result == nil || bytes.Equal(bytes.TrimSpace(parsed.Result), []byte("null")) {
 		var bare bareError
-		if json.Unmarshal(body, &bare) == nil && bare.Code != 0 {
+		if json.Unmarshal(trimmed, &bare) == nil && bare.Code != 0 {
+			if bare.Code == -32005 || strings.Contains(strings.ToLower(bare.Message), "too many requests") {
+				return nil, fmt.Errorf("%w: rpc error %d: %s", ErrRateLimited, bare.Code, bare.Message)
+			}
 			return nil, fmt.Errorf("rpc error %d: %s", bare.Code, bare.Message)
 		}
-		return nil, errors.New("rpc returned null result")
+		return nil, ErrNullResult
 	}
 	return parsed.Result, nil
 }

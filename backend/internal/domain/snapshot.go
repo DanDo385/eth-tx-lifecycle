@@ -19,60 +19,6 @@ import (
 
 type snapshotR = map[string]any
 
-// mergeReceivedBlocks merges builder_blocks_received from multiple relay responses and dedupes by block_hash (or slot+builder).
-func mergeReceivedBlocks(bodies []json.RawMessage) []snapshotR {
-	seen := make(map[string]bool)
-	var out []snapshotR
-	for _, raw := range bodies {
-		var list []map[string]any
-		if json.Unmarshal(raw, &list) != nil {
-			continue
-		}
-		for _, b := range list {
-			key := ""
-			if h, _ := b["block_hash"].(string); h != "" {
-				key = h
-			} else if s, pk := b["slot"], b["builder_pubkey"]; s != nil || pk != nil {
-				key = fmt.Sprintf("%v-%v", s, pk)
-			}
-			if key != "" && !seen[key] {
-				seen[key] = true
-				out = append(out, b)
-			} else if key == "" {
-				out = append(out, b)
-			}
-		}
-	}
-	return out
-}
-
-// mergeDeliveredPayloads merges proposer_payload_delivered from multiple relay responses and dedupes by block_hash (or slot+block_number).
-func mergeDeliveredPayloads(bodies []json.RawMessage) []snapshotR {
-	seen := make(map[string]bool)
-	var out []snapshotR
-	for _, raw := range bodies {
-		var list []map[string]any
-		if json.Unmarshal(raw, &list) != nil {
-			continue
-		}
-		for _, b := range list {
-			key := ""
-			if h, _ := b["block_hash"].(string); h != "" {
-				key = h
-			} else if s, bn := b["slot"], b["block_number"]; s != nil || bn != nil {
-				key = fmt.Sprintf("%v-%v", s, bn)
-			}
-			if key != "" && !seen[key] {
-				seen[key] = true
-				out = append(out, b)
-			} else if key == "" {
-				out = append(out, b)
-			}
-		}
-	}
-	return out
-}
-
 func snapshotSourcesInfo() snapshotR {
 	httpURL, wsURL := eth.SourceInfo()
 	return snapshotR{
@@ -101,7 +47,7 @@ func BuildSnapshot(limit int, includeSandwich bool, blockTag string) (map[string
 		if slot, err := relay.RecentSlot(); err == nil && slot != "" {
 			path := fmt.Sprintf("/relay/v1/data/bidtraces/builder_blocks_received?slot=%s&limit=%d", slot, receivedLimit)
 			if bodies, err := relay.GetFromAllRelays(path); err == nil && len(bodies) > 0 {
-				receivedBlocks = mergeReceivedBlocks(bodies)
+				receivedBlocks = MergeReceivedBlocks(bodies)
 				return nil
 			}
 		}
@@ -109,7 +55,7 @@ func BuildSnapshot(limit int, includeSandwich bool, blockTag string) (map[string
 		const deliveredLimit = 200
 		pathDel := fmt.Sprintf("/relay/v1/data/bidtraces/proposer_payload_delivered?limit=%d", deliveredLimit)
 		if bodiesDel, errDel := relay.GetFromAllRelays(pathDel); errDel == nil && len(bodiesDel) > 0 {
-			receivedBlocks = mergeDeliveredPayloads(bodiesDel)
+			receivedBlocks = MergeDeliveredPayloads(bodiesDel)
 		}
 		return nil
 	})
@@ -119,7 +65,7 @@ func BuildSnapshot(limit int, includeSandwich bool, blockTag string) (map[string
 		path := fmt.Sprintf("/relay/v1/data/bidtraces/proposer_payload_delivered?limit=%d", deliveredLimit)
 		bodies, err := relay.GetFromAllRelays(path)
 		if err == nil && len(bodies) > 0 {
-			deliveredPayloads = mergeDeliveredPayloads(bodies)
+			deliveredPayloads = MergeDeliveredPayloads(bodies)
 		}
 		return nil
 	})
@@ -131,7 +77,7 @@ func BuildSnapshot(limit int, includeSandwich bool, blockTag string) (map[string
 		if err != nil || len(bodies) == 0 {
 			return nil
 		}
-		merged := mergeDeliveredPayloads(bodies)
+		merged := MergeDeliveredPayloads(bodies)
 		enriched := make([]snapshotR, 0, len(merged))
 		for _, bid := range merged {
 			enriched = append(enriched, snapshotR{
