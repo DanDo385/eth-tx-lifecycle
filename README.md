@@ -50,7 +50,7 @@ If you are evaluating this project for solutions architecture, technical BD, or 
 
 ### Prerequisites
 
-- **Go 1.22+** (for the API server) - [Download Go](https://go.dev/dl/)
+- **Go** — use a toolchain that satisfies [`backend/go.mod`](backend/go.mod) (`go` directive; install from [go.dev](https://go.dev/dl/))
 - **Node.js 18+** (for the frontend) - [Download Node.js](https://nodejs.org/)
 
 ### Installation
@@ -85,6 +85,12 @@ If you are evaluating this project for solutions architecture, technical BD, or 
    http://localhost:3000
    ```
 
+5. **Sanity check (optional)**:
+   ```bash
+   cd backend && go test ./... -count=1 && cd ..
+   cd frontend && npm run lint && npm run build && cd ..
+   ```
+
 ### Stopping Services
 
 ```bash
@@ -94,63 +100,31 @@ make status     # Check if services are running
 
 ## How to Use (Beginner's Guide)
 
-### Step 1: Start with the Mempool
-Click **"1) Mempool"** to see real transactions waiting to be processed. This is like watching mail waiting to be sorted at the post office.
+### Step 1: Mempool
+Click **1) Mempool**. The backend polls the execution client’s **pending block** (`eth_getBlockByNumber` with tag `pending`) on an interval, then derives simple aggregate metrics. What you see is **RPC-dependent** (not a full public mempool feed).
 
-**What you'll see:**
-- How many transactions are waiting (could be thousands!)
-- Current gas prices (fees people are paying)
-- Total value being transferred
-- Explanation of base fees vs priority fees (tips)
+**What you'll see:** pending txs (when the node exposes a non-empty pending block), counts, and gas/value summaries when metrics are available.
 
-**Key insight**: Gas prices change constantly based on network demand. Higher prices = more competition for block space!
+**Key insight:** Higher gas competition shows up as higher average priority pricing in the pending set your RPC returns.
 
-### Step 2-3: See the MEV Competition
-Click **"2) Builders -> Relays"** to see professional block builders competing, then **"3) Relays -> Validators"** to see which blocks won.
+### Steps 2–3: Builders vs delivered (PBS)
+Click **2) Builders → Relays (received)**, then **3) Relays → Validators (delivered)**.
 
-**What you'll see:**
-- Multiple builders creating different blocks for the same 12-second slot
-- How much they're bidding to have their block chosen
-- Only one winner per slot gets included on-chain
-- Builder payments to validators (MEV profit sharing)
+**What you'll see:** competing builder payloads vs payloads actually delivered to proposers; sometimes a **fallback** path surfaces delivered data when `builder_blocks_received` is empty—still useful for the story.
 
-**Key insight**: The total transaction count is inflated because the same transactions appear in multiple competing blocks!
+**Key insight:** The same user txs can appear across multiple competing builder blocks, so counts look “inflated” compared to on-chain inclusion.
 
-### Step 3: Track a Transaction
-Enter any transaction hash or type **"latest"** to follow a real transaction through its lifecycle.
+### Step 4: Proposed blocks + builder payments
+Click **4) Proposed blocks + Builder payments** for consensus head headers enriched with relay bid fields where available.
 
-**What you'll see:**
-- Transaction type detection (swap, transfer, approval, contract call, etc.)
-- Gas economics breakdown
-- Block inclusion details with neighboring transactions
-- MEV relay data (builder/proposer info)
-- Finality status from beacon chain checkpoints
+### Step 5: Finality
+Click **5) Finality checkpoints** for Casper-FFG checkpoints (justified / finalized epochs).
 
-### Step 4: Explore Proposed Blocks
-Click **"4) Proposed blocks + Builder payments"** to see actual blocks that made it on-chain.
+### Step 6: MEV detector (optional, heavier)
+Click **6) MEV detector**. First open may trigger a **snapshot with MEV** path (more upstream work). Treat results as **educational heuristics** (sandwiches, arb-like patterns, liquidations, JIT-style liquidity), not production-grade forensics.
 
-**What you'll see:**
-- MEV-Boost blocks (built by professionals) vs Vanilla blocks (built locally)
-- Complete breakdown of validator earnings
-- Block fullness and gas utilization
-- Which builders dominate the market
-
-### Step 5: Understand Finality
-Click **"5) Finality checkpoints"** to see how transactions become permanent and irreversible.
-
-**What you'll see:**
-- Justification -> Finalization process (2-step security)
-- Current network health status
-- Economic security ($30+ billion to reverse finalized blocks)
-
-### Step 6: Detect MEV Attacks
-Click **"6) MEV detector"** and enter "latest" or a specific block number to scan for attacks.
-
-**What you'll see:**
-- Sandwich attacks where traders lost money (front-run → victim → back-run)
-- Arbitrage transactions (multi-pool atomic swaps)
-- Liquidations on Aave/Compound lending protocols
-- JIT liquidity (just-in-time mint → swap → burn patterns)
+### Track a transaction (panel below the steps)
+Enter a **tx hash** or **`latest`**, then **Track**. You get execution + receipt context, optional relay bidtrace fields, and a beacon-derived finality hint when data is available.
 
 ## Architecture
 
@@ -186,7 +160,7 @@ Click **"6) MEV detector"** and enter "latest" or a specific block number to sca
 ### Why This Architecture?
 
 - **Go Backend**: Fast, concurrent data fetching from multiple APIs with goroutines
-- **Next.js Frontend**: Modern React with server-side rendering
+- **Next.js Frontend**: React app router + client UI; `/api/*` is rewritten to the Go server in dev
 - **Public APIs**: No blockchain sync required (saves 500+ GB disk space!)
 - **Generic Cache**: Single `Cache[V any]` type shared across beacon, relay, and snapshot modules
 - **API Proxy**: Configurable proxy mode (`next.config.mjs` rewrites by default, `PROXY_MODE=route` for Railway/Vercel)
@@ -232,64 +206,56 @@ eth-tx-lifecycle/
 │   │   └── eth-tx-lifecycle/
 │   │       └── main.go                # Service entrypoint
 │   ├── config/
-│   │   └── config.go                  # Env + shared helpers
+│   │   └── config.go                  # Env + shared helpers (+ tests)
 │   ├── internal/
 │   │   ├── run.go                     # backend.Run entrypoint
 │   │   ├── server/
-│   │   │   └── server.go              # HTTP routes & request handlers
+│   │   │   └── server.go              # HTTP routes & handlers (+ tests)
 │   │   ├── clients/
-│   │   │   ├── eth/eth.go             # Ethereum JSON-RPC client
-│   │   │   ├── beacon/beacon.go       # Beacon chain REST client
-│   │   │   └── relay/relay.go         # MEV relay client
+│   │   │   ├── eth/eth.go             # JSON-RPC client (+ tests)
+│   │   │   ├── beacon/beacon.go       # Beacon REST client
+│   │   │   └── relay/relay.go         # MEV relay HTTP client
 │   │   ├── domain/
-│   │   │   ├── mempool.go             # Mempool polling + metrics
+│   │   │   ├── mempool.go             # Pending-block polling + metrics
 │   │   │   ├── track.go               # Transaction lifecycle tracking
+│   │   │   ├── relay_merge.go         # Shared relay list merge/dedupe
 │   │   │   ├── txdecode.go            # Transaction input decoder
-│   │   │   ├── mev.go                 # MEV detection (sandwiches, arbitrage, liquidations, JIT)
-│   │   │   └── snapshot.go            # Aggregated snapshot data
+│   │   │   ├── mev.go                 # MEV heuristics (parallel receipts)
+│   │   │   └── snapshot.go            # Aggregated snapshot (+ tests)
 │   │   └── pkg/
-│   │       ├── cache.go               # Generic TTL cache
-│   │       └── health.go              # Health monitoring helpers
+│   │       ├── cache.go               # Generic TTL cache (+ tests)
+│   │       └── health.go              # Health helpers (+ tests)
 │   ├── go.mod
 │   └── go.sum
 │
 ├── frontend/                          # Next.js frontend
 │   ├── app/
-│   │   ├── page.tsx                   # Main application with intro & guides
+│   │   ├── page.tsx                   # Main page + step controls
 │   │   ├── layout.tsx                 # Root layout
 │   │   ├── globals.css                # Global styles
-│   │   ├── components/
-│   │   │   ├── TransactionView.tsx    # Human-readable transaction display
-│   │   │   ├── BuilderRelayView.tsx   # Builder competition visualization
-│   │   │   ├── RelayDeliveredView.tsx # Winning blocks display
-│   │   │   ├── BeaconHeadersView.tsx  # Block proposals & validator earnings
-│   │   │   ├── FinalityView.tsx       # Casper-FFG finality checkpoints
-│   │   │   ├── MEVView.tsx            # MEV detection results (sandwiches, arbs, liquidations, JIT)
-│   │   │   ├── Glossary.tsx           # Interactive glossary (40+ terms)
-│   │   │   ├── MermaidDiagram.tsx     # Transaction flow diagram
-│   │   │   ├── MetricCard.tsx         # Reusable metric display card
-│   │   │   ├── Panel.tsx              # Panel wrapper
-│   │   │   ├── GlowButton.tsx         # Styled button component
-│   │   │   ├── Alert.tsx              # Alert/notification component
-│   │   │   ├── ProgressBar.tsx        # Progress bar component
-│   │   │   └── CaptureButton.tsx      # Screenshot capture button
+│   │   ├── types/
+│   │   │   └── api.ts                 # Typed API / envelope contracts
+│   │   ├── components/                # Panels, views, glossary, diagram, …
 │   │   ├── api/
-│   │   │   ├── [...path]/route.ts     # Conditional API proxy to Go backend
-│   │   │   └── test/route.ts          # Test route to verify API routing
-│   │   ├── utils/
-│   │   │   └── format.ts              # Data formatting (hex->decimal, wei->ETH)
-│   ├── next.config.mjs                # Next.js config with API rewrites
-│   ├── tailwind.config.ts             # Tailwind CSS configuration
-│   ├── tsconfig.json                  # TypeScript configuration
-│   ├── package.json                   # Frontend dependencies
+│   │   │   ├── [...path]/route.ts     # Optional route proxy (`PROXY_MODE=route`)
+│   │   │   └── test/route.ts          # Dev-only test route (404 in prod unless enabled)
+│   │   └── utils/
+│   │       └── format.ts              # Hex / wei / gwei → human units
+│   ├── next.config.mjs                # Rewrites + CSP headers
+│   ├── tailwind.config.ts             # Tailwind configuration
+│   ├── tsconfig.json                  # TypeScript (strict)
+│   ├── package.json                   # `lint` = `tsc --noEmit`
 │   └── public/
 │       └── favicon.ico
 │
+├── .github/workflows/
+│   └── ci.yml                           # Go test + vet + frontend lint/build
 ├── scripts/
-│   ├── start-backend.sh               # Compile and start backend server
-│   └── start-frontend.sh              # Start Next.js dev server
-├── Makefile                           # Build/start/stop commands
-├── .env.local                         # Environment configuration (not committed)
+│   ├── start-backend.sh               # Source root `.env.local`, build, run API
+│   └── start-frontend.sh              # Source root `.env.local`, `next dev`
+├── Makefile                           # start / stop / status
+├── .env.example                       # Template env (copy to `.env.local`)
+├── .env.local                         # Local secrets/overrides (not committed)
 ├── AGENTS.md                          # AI/agent instructions for this repo
 └── README.md                          # This file
 ```
@@ -299,12 +265,12 @@ eth-tx-lifecycle/
 ### Data Endpoints
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/mempool` | Real-time mempool data with aggregate metrics |
+| `GET /api/mempool` | Pending-block snapshot + aggregate metrics (from `eth_getBlockByNumber("pending", true)` polling) |
 | `GET /api/relays/received` | Builder blocks submitted to relays |
 | `GET /api/relays/delivered` | Winning blocks delivered to validators |
 | `GET /api/validators/head` | Beacon chain headers enriched with builder payments |
 | `GET /api/finality` | Casper-FFG finality checkpoints |
-| `GET /api/snapshot` | Aggregated data from all sources (cached) |
+| `GET /api/snapshot` | Aggregated data from all sources (server + upstream caching) |
 | `GET /api/block/{number}` | Full block with all transactions |
 
 ### Tracking & Analysis
@@ -332,11 +298,12 @@ cp .env.example .env.local
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `GOAPI_ORIGIN` | Frontend API proxy target and backend CORS origin | `http://localhost:8080` (frontend), `http://localhost:3000` (backend CORS fallback) |
+| `GOAPI_ORIGIN` | Next rewrites **and** Go CORS (same name—see note below) | Usually **omit** locally so defaults apply |
 | `PROXY_MODE` | Optional route-based proxy mode (`route`) | unset |
 | `ENABLE_TEST_API_ROUTE` | Keep `/api/test` enabled in production | `false` |
 | `GOAPI_ADDR` | Backend listen address | `:8080` |
 | `PORT` | Fallback backend port (used when `GOAPI_ADDR` unset) | `8080` |
+| `WEB_PORT` | Next dev server port (`scripts/start-frontend.sh`) | `3000` |
 | `RPC_HTTP_URL` | Primary execution-layer RPC endpoint | public endpoint fallback |
 | `RPC_HTTP_URL1..10` | Optional multi-provider RPC failover/racing | unset |
 | `RPC_WS_URL` | Optional websocket endpoint for source display | unset |
@@ -354,22 +321,31 @@ cp .env.example .env.local
 
 The defaults are chosen for local demos. For evaluator-facing demos, use your own RPC key(s) and keep relay lists explicit in `.env.local`.
 
-## Demo Assets to Capture
+**`GOAPI_ORIGIN` in local dev:** `scripts/start-*.sh` source the same root `.env.local` for both processes. Next needs the **backend URL** for rewrites; Go needs the **browser origin** for CORS. If you set `GOAPI_ORIGIN=http://localhost:8080` for Next, the Go process may inherit it and emit the wrong `Access-Control-Allow-Origin` for a UI on port 3000. **Practical default:** omit `GOAPI_ORIGIN` from root `.env.local` so Next’s rewrite default (`http://localhost:8080`) and Go’s CORS default (`http://localhost:3000`) both apply; override only when your ports or hosts differ.
 
-Add these assets under `docs/assets/` and reference them in this README:
+## Continuous integration
 
-1. **`overview-flow.png`**: Main screen with transaction flow diagram and step buttons visible.
-2. **`builder-vs-delivered.gif`**: Toggle between Builders → Relays and Relays → Validators to show auction vs winner.
-3. **`track-lifecycle.png`**: Transaction tracker showing decoded action, economics, inclusion, and finality context.
-4. **`health-and-sources.png`**: Health endpoint output + in-app source attribution labels.
+GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to `main`/`master`:
 
-Example markdown placeholders:
+- **Go:** `go test ./...` (with a low coverage floor), `go vet ./...`
+- **Frontend:** `npm ci`, `npm run lint` (`tsc --noEmit`), `npm run build`
 
-```md
-![Overview flow](docs/assets/overview-flow.png)
-![Builder auction to winner](docs/assets/builder-vs-delivered.gif)
-![Transaction lifecycle drilldown](docs/assets/track-lifecycle.png)
-```
+## Timed demo (150 seconds)
+
+**Prep (before the clock):** start the stack, open `http://localhost:3000`, click **1) Mempool** once and wait for data so the first snapshot is warm.
+
+| Time | Do |
+|------|-----|
+| 0:00–0:15 | One-sentence hook; point at the **Transaction Flow** diagram. |
+| 0:15–0:45 | **1) Mempool** — pending block view + metrics. |
+| 0:45–1:15 | **2) Builders → Relays** then **3) Relays → Validators** — auction vs winner; mention fallback if shown. |
+| 1:15–1:30 | **5) Finality checkpoints** — one line on justified vs finalized. |
+| 1:30–1:45 | **Track** — `latest` or a pre-tested hash. |
+| 1:45–2:30 | One architecture sentence (Go aggregates + envelope; Next explains); **skip 6) MEV** on a cold run unless pre-warmed. |
+
+## Demo assets (optional)
+
+Capture under `docs/assets/` for portfolio/README embeds: main flow + step buttons; 2→3 toggle; tracker panel; `GET /api/health` JSON or in-app source line.
 
 ## Troubleshooting
 
@@ -378,9 +354,9 @@ Example markdown placeholders:
 **"No builder block submissions found"**
 - The relay API may be rate limiting. Try again in a few minutes.
 
-**"Mempool data not available from public RPC"**
-- Some RPC providers don't expose txpool APIs. The tool works with limited mempool data.
-- For full mempool access, use your own Alchemy API key.
+**Empty or sparse mempool panel**
+- Data comes from the node’s **pending block** view (`eth_getBlockByNumber("pending", true)`). Some RPCs return an empty or minimal pending block.
+- Use a dedicated RPC (your own key) or retry after a few seconds.
 
 **"Beacon API temporarily unavailable"**
 - Public beacon APIs have rate limits. Wait a minute and try again.
@@ -413,8 +389,8 @@ This is an educational project and contributions are welcome!
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Verify: `cd backend && go build ./cmd/eth-tx-lifecycle && go vet ./...`
-5. Verify: `cd frontend && npm run build`
+4. Verify backend: `cd backend && go test ./... -count=1 && go vet ./... && go build ./cmd/eth-tx-lifecycle`
+5. Verify frontend: `cd frontend && npm run lint && npm run build`
 6. Submit a pull request
 
 ## License
