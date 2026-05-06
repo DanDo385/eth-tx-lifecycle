@@ -5,14 +5,14 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "analogy:prompts": "node scripts/generate-analogy-prompts.mjs"
   },
   "dependencies": {
     "html2canvas": "^1.4.1",
     "next": "^16.3.0-canary.9",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-tooltip": "^5.26.4"
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

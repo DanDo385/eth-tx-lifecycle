@@ -8,7 +8,10 @@
 
 html,
 body {
-  background: theme('colors.bg');
+  background:
+    radial-gradient(circle at top, rgba(0, 209, 255, 0.08), transparent 45%),
+    radial-gradient(circle at 20% 80%, rgba(168, 85, 247, 0.08), transparent 35%),
+    theme('colors.bg');
   color: white;
   min-height: 100%;
 }

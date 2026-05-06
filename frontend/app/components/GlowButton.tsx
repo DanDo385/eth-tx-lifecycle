@@ -6,19 +6,30 @@ export default function GlowButton({
   children,
   onClick,
   ariaLabel,
-  className
+  className,
+  compact = false,
+  disabled = false,
 }: {
   children: ReactNode;
   onClick?: () => void | Promise<void>;
   ariaLabel?: string;
   className?: string;
+  compact?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       aria-label={ariaLabel}
       onClick={onClick}
-      className={`text-lg md:text-2xl px-6 py-4 rounded-2xl bg-panel hover:shadow-neonBlue border border-cyan-400/30 shadow-neon transition-all outline-none focus:ring-2 focus:ring-neon-blue ${className || ""}`}
+      disabled={disabled}
+      className={`rounded-xl border border-cyan-400/30 bg-panel text-white transition-all outline-none focus:ring-2 focus:ring-neon-blue ${
+        compact
+          ? "px-3 py-2 text-sm hover:shadow-neonBlue"
+          : "px-4 py-3 text-sm md:text-base hover:shadow-neonBlue"
+      } ${
+        disabled ? "cursor-not-allowed opacity-60" : "shadow-neon"
+      } ${className || ""}`}
     >
       {children}
     </button>

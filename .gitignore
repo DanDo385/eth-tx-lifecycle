@@ -72,3 +72,6 @@ Thumbs.db
 
 # Local dev pid/logs
 .pids/
+
+# Hermes local workspace notes
+.hermes/

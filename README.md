@@ -1,6 +1,37 @@
 # eth-tx-lifecycle - Ethereum Transaction Lifecycle Visualizer
 
-`eth-tx-lifecycle` is a full-stack educational explorer that makes Ethereum's post-click transaction pipeline legible: mempool visibility, proposer-builder separation (PBS), relay delivery, beacon proposal, and Casper finality. A Go backend aggregates heterogeneous upstreams (execution JSON-RPC, consensus REST, and MEV relays) with timeouts, fallback behavior, and caching; a Next.js frontend turns raw chain data into a guided, interview-ready systems narrative. The project is intentionally positioned at the TradFi + DeFi intersection: explainability for non-specialists, while still exposing enough mechanics for technical reviewers.
+`eth-tx-lifecycle` is a full-stack educational explorer that makes Ethereum's post-click transaction pipeline legible through a core post-office mapping: wallet send, mempool queue, builder/searcher optimization, relay handoff, proposer dispatch, and Casper finality lock. A Go backend aggregates heterogeneous upstreams (execution JSON-RPC, consensus REST, and MEV relays) with timeouts, fallback behavior, and caching; a Next.js frontend turns raw chain data into a guided, beginner-first narrative while preserving live-data evidence.
+
+## Ethereum in Plain English (Post Office Analogy)
+
+If you're brand new, start here:
+
+- Ethereum is a global transaction network.
+- A transaction is a letter you want delivered.
+- Gas is the stamp price you pay for processing.
+- Validators/proposers are dispatch authorities choosing which bag leaves next.
+- Finality is the certified lock that makes the delivery record extremely hard to reverse.
+
+### Core Mapping Used In This Project
+
+1. **Wallet send -> Drop letter in mailbox**  
+   Your wallet signs a transaction and broadcasts it to peers.
+2. **Mempool -> Local sorting room**  
+   Pending letters wait in queue-like bins while fee pressure changes urgency.
+3. **Builders/searchers -> Logistics optimizers**  
+   Specialized teams build competing route plans (candidate blocks).
+4. **Relays -> Trusted handoff depots**  
+   Candidate dispatch bags are checked and forwarded.
+5. **Validators/proposers -> Dispatch authority**  
+   One valid bag is selected and sent for that slot.
+6. **Finality -> Certified delivery lock**  
+   Checkpoints confirm records and make them economically irreversible.
+
+### Why This Analogy Works
+
+- It gives beginners a mental model before protocol jargon.
+- It preserves technical correctness through "reality check" callouts in UI.
+- It pairs narrative with live evidence so users see this is not mock data.
 
 ## What You'll Learn
 
@@ -14,19 +45,18 @@
 ## Features
 
 ### For Beginners
-- **Interactive Glossary** - 40+ terms organized by category with hover definitions
-- **Step-by-Step Guide** - Numbered on-page guide explaining each panel
-- **Real-World Analogies** - Post office metaphors, concert ticket scalpers, bank comparisons
-- **Educational Tooltips** - Detailed explanations throughout with "why this matters" sections
-- **Visual Metrics** - User-friendly cards showing gas prices, transaction counts, validator earnings
+- **Core Lifecycle Guide (`/`)** - wallet -> mempool -> builders/searchers -> relays -> proposers -> finality
+- **Creative Analogy + Reality Checks** - each post-office scene includes a technical correction
+- **Stamp Pricing Explainers** - variable postage analogy mapped to base fee + priority fee mechanics
+- **Visual Metrics** - user-friendly cards showing gas prices, transaction counts, and proposer economics
 
 ### Advanced / Infra-Focused
-- **Real-Time Data** - Live transactions, blocks, and validator data from Ethereum mainnet
-- **Transaction Tracking** - Follow any transaction hash (or enter "latest") through its complete lifecycle
-- **Smart Transaction Decoding** - Identifies swaps, transfers, approvals, mints, claims, and contract calls using receipt analysis
-- **MEV Detection** - Scan blocks for sandwiches, arbitrage, liquidations, and JIT liquidity using parallel receipt fetching
-- **Builder Competition** - See multiple builders bidding for the same block slot
-- **Finality Monitoring** - Watch Casper-FFG checkpoints in action
+- **MEV Lab (`/mev-lab`)** - dedicated page for MEV detection, MEV-Boost framing, and PBS comparisons
+- **Real-Time Data** - live transactions, blocks, and validator data from Ethereum mainnet
+- **Transaction Tracking** - follow any transaction hash (or enter "latest") through its complete lifecycle
+- **Smart Transaction Decoding** - identifies swaps, transfers, approvals, mints, claims, and contract calls using receipt analysis
+- **MEV Detection** - scan blocks for sandwiches, arbitrage, liquidations, and JIT liquidity using parallel receipt fetching
+- **Finality Monitoring** - watch Casper-FFG checkpoints in action
 
 ### Technical Foundations
 - **No Local Node Required** - Uses public APIs (Alchemy/Infura JSON-RPC, Beacon API, MEV relays like Flashbots)
@@ -98,30 +128,49 @@ make stop       # Stop both services and free ports
 make status     # Check if services are running
 ```
 
-## How to Use (Beginner's Guide)
+## How to Use
 
-### Step 1: Mempool
-Click **1) Mempool**. The backend polls the execution client’s **pending block** (`eth_getBlockByNumber` with tag `pending`) on an interval, then derives simple aggregate metrics. What you see is **RPC-dependent** (not a full public mempool feed).
+### Lifecycle Guide (`/`)
+
+The default route is a beginner-first core flow:
+
+1. **Wallet send** - your signed transaction enters the network.
+2. **Mempool** - pending transactions wait in a queue-like market.
+3. **Builders/searchers** - competing candidate blocks are optimized.
+4. **Relays** - candidate payloads are handed to proposers.
+5. **Validators/proposers** - one block is proposed per slot.
+6. **Finality** - justified/finalized checkpoints lock history.
+
+If you're presenting this live, use [`demo.md`](demo.md) for the full demo script, timing, fallback flow, and Q&A prompts.
+
+### Step 2 (Core): Mempool
+Click **2) Mempool**. The backend polls the execution client’s **pending block** (`eth_getBlockByNumber` with tag `pending`) on an interval, then derives aggregate metrics. What you see is **RPC-dependent** (not a full public mempool feed).
 
 **What you'll see:** pending txs (when the node exposes a non-empty pending block), counts, and gas/value summaries when metrics are available.
 
 **Key insight:** Higher gas competition shows up as higher average priority pricing in the pending set your RPC returns.
 
-### Steps 2–3: Builders vs delivered (PBS)
-Click **2) Builders → Relays (received)**, then **3) Relays → Validators (delivered)**.
+### Steps 3–4 (Core): Builders and relays (PBS)
+Click **3) Builders/searchers**, then **4) Relays**.
 
 **What you'll see:** competing builder payloads vs payloads actually delivered to proposers; sometimes a **fallback** path surfaces delivered data when `builder_blocks_received` is empty—still useful for the story.
 
 **Key insight:** The same user txs can appear across multiple competing builder blocks, so counts look “inflated” compared to on-chain inclusion.
 
-### Step 4: Proposed blocks + builder payments
-Click **4) Proposed blocks + Builder payments** for consensus head headers enriched with relay bid fields where available.
+### Step 5 (Core): Validators/proposers
+Click **5) Validators/proposers** for consensus head headers enriched with relay bid fields where available.
 
-### Step 5: Finality
-Click **5) Finality checkpoints** for Casper-FFG checkpoints (justified / finalized epochs).
+### Step 6 (Core): Finality
+Click **6) Finality** for Casper-FFG checkpoints (justified / finalized epochs).
 
-### Step 6: MEV detector (optional, heavier)
-Click **6) MEV detector**. First open may trigger a **snapshot with MEV** path (more upstream work). Treat results as **educational heuristics** (sandwiches, arb-like patterns, liquidations, JIT-style liquidity), not production-grade forensics.
+### MEV Lab (`/mev-lab`)
+Use the dedicated MEV page for:
+
+- live MEV scans (`/api/mev/sandwich`) with block input;
+- pre-PBS vs PBS architecture narrative;
+- estimate methodology cards that clearly separate observed live signals from assumption-based historical proxies.
+
+Treat MEV output as **educational heuristics** (sandwiches, arb-like patterns, liquidations, JIT-style liquidity), not production-grade forensics.
 
 ### Track a transaction (panel below the steps)
 Enter a **tx hash** or **`latest`**, then **Track**. You get execution + receipt context, optional relay bidtrace fields, and a beacon-derived finality hint when data is available.
@@ -133,7 +182,6 @@ Enter a **tx hash** or **`latest`**, then **Track**. You get execution + receipt
 |                  Browser (localhost:3000)                   |
 |                                                            |
 |  Next.js Frontend with Educational Components              |
-|  - Interactive Glossary (40+ terms)                        |
 |  - Step-by-step on-page guide                              |
 |  - User-friendly Metric Cards                              |
 |  - Transaction decoder (swap, transfer, approve, etc.)     |
@@ -181,6 +229,12 @@ Enter a **tx hash** or **`latest`**, then **Track**. You get execution + receipt
 
 5. **Configuration-first runtime behavior**  
    Timeouts, relay URLs, cache TTLs, and analysis limits are all driven by env vars to keep deployments portable.
+
+6. **Creative analogy with explicit boundaries**  
+   Post-office storytelling is intentionally simplified for learning, but each major section includes a "reality check" so the narrative remains technically honest.
+
+7. **Estimate labeling for historical comparisons**  
+   Any pre/post PBS comparison values in UI are marked as educational estimates with confidence labels and visible assumptions.
 
 ## What I'd Do Differently in Production
 
@@ -230,12 +284,13 @@ eth-tx-lifecycle/
 │
 ├── frontend/                          # Next.js frontend
 │   ├── app/
-│   │   ├── page.tsx                   # Main page + step controls
+│   │   ├── page.tsx                   # Core lifecycle guide (beginner-first)
+│   │   ├── mev-lab/page.tsx           # Dedicated MEV lab and PBS comparison view
 │   │   ├── layout.tsx                 # Root layout
 │   │   ├── globals.css                # Global styles
 │   │   ├── types/
 │   │   │   └── api.ts                 # Typed API / envelope contracts
-│   │   ├── components/                # Panels, views, glossary, diagram, …
+│   │   ├── components/                # Panels, views, diagrams, API displays
 │   │   ├── api/
 │   │   │   ├── [...path]/route.ts     # Optional route proxy (`PROXY_MODE=route`)
 │   │   │   └── test/route.ts          # Dev-only test route (404 in prod unless enabled)
@@ -308,7 +363,8 @@ cp .env.example .env.local
 | `RPC_HTTP_URL1..10` | Optional multi-provider RPC failover/racing | unset |
 | `RPC_WS_URL` | Optional websocket endpoint for source display | unset |
 | `RPC_TIMEOUT_SECONDS` | Execution RPC timeout (1-60) | `5` |
-| `BEACON_API_URL` | Consensus-layer API endpoint | `https://beacon.prylabs.net` |
+| `BEACON_API_URL` | Primary consensus-layer API endpoint | `https://beacon.prylabs.net` |
+| `BEACON_API_FALLBACK_URLS` | Comma-separated fallback Beacon REST endpoints | PublicNode + ChainSafe Lodestar |
 | `RELAY_URLS` | Comma-separated MEV relay base URLs | built-in public list |
 | `RELAY_BUDGET_MS` | Total relay fanout budget per request | `2500` |
 | `UPSTREAM_TIMEOUT_SECONDS` | HTTP timeout for beacon/relay clients | `3` |
@@ -343,6 +399,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to `main`/`master`:
 | 1:30–1:45 | **Track** — `latest` or a pre-tested hash. |
 | 1:45–2:30 | One architecture sentence (Go aggregates + envelope; Next explains); **skip 6) MEV** on a cold run unless pre-warmed. |
 
+For a fuller presenter-focused runbook (3-minute and 6-minute versions), see [`demo.md`](demo.md).
+
 ## Demo assets (optional)
 
 Capture under `docs/assets/` for portfolio/README embeds: main flow + step buttons; 2→3 toggle; tracker panel; `GET /api/health` JSON or in-app source line.
@@ -359,7 +417,8 @@ Capture under `docs/assets/` for portfolio/README embeds: main flow + step butto
 - Use a dedicated RPC (your own key) or retry after a few seconds.
 
 **"Beacon API temporarily unavailable"**
-- Public beacon APIs have rate limits. Wait a minute and try again.
+- The backend now tries the primary Beacon REST endpoint, then the fallback list in `BEACON_API_FALLBACK_URLS`.
+- If all public endpoints are slow or rate-limited, wait a minute or configure a dedicated Beacon REST endpoint.
 
 **Port already in use**
 - Run `make stop` to stop all services and free ports.

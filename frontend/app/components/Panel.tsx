@@ -52,8 +52,8 @@ export default function Panel({
 
   const shell =
     variant === "alt"
-      ? "rounded-2xl border border-purple-500/25 bg-gradient-to-br from-purple-950/40 to-panel/90 p-4 md:p-6 my-4"
-      : "rounded-2xl bg-panel/80 border border-white/10 p-4 md:p-6 my-4";
+      ? "rounded-2xl border border-purple-500/25 bg-gradient-to-br from-purple-950/25 to-panel/90 p-4 md:p-6 my-4"
+      : "rounded-2xl bg-panel/75 border border-white/10 p-4 md:p-6 my-4";
 
   return (
     <section
@@ -62,7 +62,7 @@ export default function Panel({
       className={shell}
     >
       {/* Panel title - neon blue for visual pop */}
-      <h2 id={headingId} className="text-neon-blue font-semibold text-xl mb-3">
+      <h2 id={headingId} className="mb-3 text-xl font-semibold text-neon-blue">
         {title}
       </h2>
 

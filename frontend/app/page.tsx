@@ -1,21 +1,19 @@
-// frontend/app/page.tsx
-// Main page for the Ethereum transaction flow visualizer.
-// Shows how transactions go from mempool → MEV auction → block proposal → finality.
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import GlowButton from "./components/GlowButton";
 import Panel from "./components/Panel";
 import CaptureButton from "./components/CaptureButton";
 import MermaidDiagram from "./components/MermaidDiagram";
+import PostOfficeAnalogy from "./components/PostOfficeAnalogy";
+import StampPricingCard from "./components/StampPricingCard";
 import Alert from "./components/Alert";
-import Glossary from "./components/Glossary";
 import TransactionView from "./components/TransactionView";
 import BuilderRelayView from "./components/BuilderRelayView";
 import RelayDeliveredView from "./components/RelayDeliveredView";
 import BeaconHeadersView from "./components/BeaconHeadersView";
 import FinalityView from "./components/FinalityView";
-import MEVView from "./components/MEVView";
 import MempoolView from "./components/MempoolView";
 import { weiToEth, formatNumber } from "./utils/format";
 import type {
@@ -25,87 +23,126 @@ import type {
   RelayReceivedData,
   BeaconHeadersData,
   FinalityData,
-  MevData,
   SnapshotData,
   SourcesInfo,
   TrackTxData,
 } from "./types/api";
 
-// Type aliases to make the code more readable
 type ErrState = { title: string; message?: string; hint?: string } | null;
+type LifecyclePanel = "wallet" | "mempool" | "received" | "delivered" | "headers" | "finality";
+
+function hasEnvelopeData<T>(value: unknown): value is EduEnvelope<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    ("data" in (value as Record<string, unknown>) || "error" in (value as Record<string, unknown>))
+  );
+}
+
+function unwrapData<T>(value: EduEnvelope<T> | T | string | null): T | null {
+  if (value == null || typeof value === "string") {
+    return null;
+  }
+  if (hasEnvelopeData<T>(value)) {
+    return value.data ?? null;
+  }
+  return value as T;
+}
 
 export default function Page() {
-  // State for each data panel - mempool, relays, beacon, etc
-  // These hold the raw data from our backend endpoints
   const [mempool, setMempool] = useState<MempoolData | null>(null);
   const [received, setReceived] = useState<RelayReceivedData | null>(null);
   const [delivered, setDelivered] = useState<RelayDeliveredData | null>(null);
   const [headers, setHeaders] = useState<BeaconHeadersData | null>(null);
   const [finality, setFinality] = useState<FinalityData | null>(null);
-  const [mev, setMev] = useState<{ data: MevData } | null>(null);
-  const [mevBlock, setMevBlock] = useState<string>("latest"); // Block to analyze for MEV
-  const [sources, setSources] = useState<SourcesInfo | null>(null); // API endpoint info
-  const [trackHash, setTrackHash] = useState<string>(""); // User input for tx tracking
-  const [tracked, setTracked] = useState<TrackTxData | null>(null); // Result of tx tracking
+  const [sources, setSources] = useState<SourcesInfo | null>(null);
+  const [trackHash, setTrackHash] = useState<string>("");
+  const [tracked, setTracked] = useState<TrackTxData | null>(null);
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackDetailsHidden, setTrackDetailsHidden] = useState(false);
   const [error, setError] = useState<ErrState>(null);
-  const [trackError, setTrackError] = useState<ErrState>(null); // Separate error state for tracking
-  const [backendReady, setBackendReady] = useState<boolean | null>(null); // null = checking, true = ready, false = not ready
-
-  // Client-side throttle for snapshot endpoint to avoid hammering the API
-  // Users were clicking buttons too fast and overwhelming our poor Go server
+  const [trackError, setTrackError] = useState<ErrState>(null);
+  const [backendReady, setBackendReady] = useState<boolean | null>(null);
   const [lastSnapAt, setLastSnapAt] = useState<number>(0);
-  const SNAP_TTL_MS = 30_000; // wait 30s between snapshot calls
+  const [activePanel, setActivePanel] = useState<LifecyclePanel | null>("wallet");
 
-  // Track which panel is currently open (only one at a time)
-  // This makes the UI cleaner and prevents information overload
-  const [activePanel, setActivePanel] = useState<string | null>(null);
+  const SNAP_TTL_MS = 30_000;
+  const mempoolMetrics = mempool?.metrics;
+  const avgGasPrice = mempoolMetrics?.avgGasPrice ?? 0;
 
-  // Compute which stages to highlight in the diagram based on active panel
-  // This makes the Mermaid diagram interactive - highlights the current step
   const stages = useMemo(
     () => ({
       mempool: activePanel === "mempool",
-      pbs: activePanel === "received" || activePanel === "delivered", // PBS = Proposer-Builder Separation
+      pbs: activePanel === "received" || activePanel === "delivered",
       relays: activePanel === "received" || activePanel === "delivered",
       proposal: activePanel === "headers",
-      finality: activePanel === "finality"
+      finality: activePanel === "finality",
     }),
     [activePanel]
   );
 
+  const lifecycleButtons: Array<{
+    id: LifecyclePanel;
+    title: string;
+    subtitle: string;
+    accentClass: string;
+    shouldLoad: boolean;
+  }> = [
+    {
+      id: "wallet",
+      title: "1) Wallet send",
+      subtitle: "Drop letter in mailbox",
+      accentClass: "border-cyan-400/40",
+      shouldLoad: false,
+    },
+    {
+      id: "mempool",
+      title: "2) Mempool",
+      subtitle: "Local sorting room",
+      accentClass: "border-cyan-400/40",
+      shouldLoad: !mempool,
+    },
+    {
+      id: "received",
+      title: "3) Builders/searchers",
+      subtitle: "Logistics optimizers",
+      accentClass: "border-purple-400/40",
+      shouldLoad: !received,
+    },
+    {
+      id: "delivered",
+      title: "4) Relays",
+      subtitle: "Trusted handoff depots",
+      accentClass: "border-purple-400/40",
+      shouldLoad: !delivered,
+    },
+    {
+      id: "headers",
+      title: "5) Validators/proposers",
+      subtitle: "Dispatch authority",
+      accentClass: "border-blue-400/40",
+      shouldLoad: !headers,
+    },
+    {
+      id: "finality",
+      title: "6) Finality",
+      subtitle: "Certified delivery lock",
+      accentClass: "border-emerald-400/40",
+      shouldLoad: !finality,
+    },
+  ];
 
-  // checkBackendHealth verifies that the backend is ready to serve requests
-  // This prevents the frontend from making API calls when the backend is still starting up
   async function checkBackendHealth() {
     try {
-      const r = await fetch('/api/health/ready');
-      const isReady = r.ok && (await r.text()) === 'READY';
+      const r = await fetch("/api/health/ready");
+      const isReady = r.ok && (await r.text()) === "READY";
       setBackendReady(isReady);
       return isReady;
-    } catch (error) {
-      console.warn('Backend health check failed:', error);
+    } catch (healthError) {
+      console.warn("Backend health check failed:", healthError);
       setBackendReady(false);
       return false;
     }
-  }
-
-  // safeFetch wraps fetch with error handling and user-friendly messages
-  // All our API calls go through this to provide consistent error UX
-  // This was a pain point - users were seeing cryptic errors before we added this
-  function hasEnvelopeData<T>(value: unknown): value is EduEnvelope<T> {
-    return typeof value === "object" && value !== null && ("data" in (value as Record<string, unknown>) || "error" in (value as Record<string, unknown>));
-  }
-
-  function unwrapData<T>(value: EduEnvelope<T> | T | string | null): T | null {
-    if (value == null || typeof value === "string") {
-      return null;
-    }
-    if (hasEnvelopeData<T>(value)) {
-      return value.data ?? null;
-    }
-    return value as T;
   }
 
   async function safeFetch<T>(url: string, init?: RequestInit): Promise<EduEnvelope<T> | T | string | null> {
@@ -115,7 +152,6 @@ export default function Page() {
       const contentType = res.headers.get("content-type") || "";
       const isJSON = contentType.includes("application/json") || url.endsWith(".json");
 
-      // Handle non-JSON responses (some endpoints return plain text)
       if (!isJSON) {
         if (!res.ok) {
           setError({ title: "Request failed", message: `${res.status} ${res.statusText}` });
@@ -124,22 +160,18 @@ export default function Page() {
         return await res.text();
       }
 
-      const payload = await res.json() as EduEnvelope<T>;
-
-      // Check for errors in the response
+      const payload = (await res.json()) as EduEnvelope<T>;
       if (!res.ok || payload?.error) {
         const errPayload = payload?.error ?? {};
         let errorMessage = errPayload.message || `${res.status} ${res.statusText}`;
         let errorHint = errPayload.hint;
 
-        // Translate technical errors into user-friendly messages
-        // These error types come from our backend - we map them to helpful explanations
         if (errPayload.kind === "TXPOOL") {
           errorMessage = "Mempool data not available from public RPC";
           errorHint = "Public RPC providers may not expose txpool APIs. Try using a different RPC endpoint.";
         } else if (errPayload.kind === "RELAY") {
           errorMessage = "Relay API temporarily unavailable";
-          errorHint = "This is normal - public relays may be rate limiting. Try again in a few minutes.";
+          errorHint = "Public relays may be rate limiting. Try again in a few minutes.";
         } else if (errPayload.kind === "BEACON") {
           errorMessage = "Beacon API temporarily unavailable";
           errorHint = "Public beacon API may be rate limiting. Try again in a few minutes.";
@@ -148,91 +180,58 @@ export default function Page() {
         setError({
           title: errPayload.kind || "Request failed",
           message: errorMessage,
-          hint: errorHint
+          hint: errorHint,
         });
         return null;
       }
 
       return payload;
     } catch (err) {
-      // Network errors, CORS issues, etc
-      // This catches everything else that could go wrong
       setError({
         title: "Network error",
         message: err instanceof Error ? err.message : String(err),
-        hint: "Ensure the backend is reachable (default http://localhost:8080)"
+        hint: "Ensure the backend is reachable (default http://localhost:8080)",
       });
       return null;
     }
   }
 
-  // Check backend health on component mount
-  useEffect(() => {
-    checkBackendHealth();
-  }, []);
-
-  // Move tracking-related errors from global error to trackError
-  useEffect(() => {
-    if (error && trackHash && (error.title === "TX_NOT_FOUND" || error.title === "Validation" || error.title === "Request failed")) {
-      setTrackError(error);
-      setError(null); // Remove from global error display
-    }
-  }, [error, trackHash]);
-
-  // loadSnapshot fetches a batch of data from the /api/snapshot endpoint.
-  // This is more efficient than hitting each endpoint individually since
-  // the Go server can parallelize the upstream calls and cache the result.
-  // Originally we were making 5+ separate API calls - this is much better
-  async function loadSnapshot(includeSandwich = false, block?: string) {
-    // Check if backend is ready before making API calls
+  async function loadSnapshot() {
     if (backendReady === false) {
-      setError({ 
-        title: "Backend not ready", 
+      setError({
+        title: "Backend not ready",
         message: "The API server is still starting up. Please wait a moment and try again.",
-        hint: "This usually takes 10-30 seconds on first startup."
+        hint: "This usually takes 10-30 seconds on first startup.",
       });
       return;
     }
 
-    // If we haven't checked health yet, do it now
     if (backendReady === null) {
       const isReady = await checkBackendHealth();
       if (!isReady) {
-        setError({ 
-          title: "Backend not ready", 
+        setError({
+          title: "Backend not ready",
           message: "The API server is still starting up. Please wait a moment and try again.",
-          hint: "This usually takes 10-30 seconds on first startup."
+          hint: "This usually takes 10-30 seconds on first startup.",
         });
         return;
       }
     }
-    // Throttle to avoid spamming the API when user clicks buttons rapidly
-    // Users were clicking like crazy and our server was crying
+
     const now = Date.now();
     if (now - lastSnapAt < SNAP_TTL_MS) {
-      return; // reuse existing state
+      return;
     }
 
-    // Build query string for optional MEV analysis
-    // MEV analysis is expensive so we only do it when requested
-    const qs = new URLSearchParams();
-    if (includeSandwich) {
-      qs.set("sandwich", "1");
-      qs.set("block", block || mempool?.lastBlock || "latest");
-    }
-
-    const result = await safeFetch<SnapshotData>(`/api/snapshot${qs.toString() ? '?' + qs.toString() : ''}`);
+    const result = await safeFetch<SnapshotData>("/api/snapshot");
     const d = unwrapData<SnapshotData>(result);
     if (!d) return;
 
-    // Update all our state from the snapshot response
-    // This is where we populate all the UI panels with fresh data
     if (d.mempool) {
       setMempool(d.mempool);
     }
 
     if (d.relays) {
-      // Split relay data into received vs delivered for different views
       const receivedBlocks = d.relays.received ?? [];
       const deliveredPayloads = d.relays.delivered ?? [];
       setReceived({ received_blocks: receivedBlocks, count: receivedBlocks.length });
@@ -240,125 +239,77 @@ export default function Page() {
     }
 
     if (d.beacon) {
-      // Beacon data includes both headers and finality checkpoints
       if (d.beacon.headers) setHeaders(d.beacon.headers);
       if (d.beacon.finality) setFinality(d.beacon.finality);
     }
 
-    if (d.mev) {
-      // MEV data is wrapped in a data property for consistency
-      setMev({ data: d.mev });
-    }
-
     if (d.sources) {
-      // Track which APIs we're using for debugging
       setSources(d.sources);
     }
 
-    setLastSnapAt(now); // Update throttle timestamp
+    setLastSnapAt(now);
   }
 
-  const mempoolMetrics = mempool?.metrics;
-  const avgGasPrice = mempoolMetrics?.avgGasPrice ?? 0;
+  const onSelectPanel = async (panelId: LifecyclePanel, shouldLoad: boolean) => {
+    if (activePanel === panelId) {
+      setActivePanel(null);
+      return;
+    }
+    if (shouldLoad) {
+      await loadSnapshot();
+    }
+    setActivePanel(panelId);
+  };
+
+  useEffect(() => {
+    checkBackendHealth();
+  }, []);
+
+  useEffect(() => {
+    if (
+      error &&
+      trackHash &&
+      (error.title === "TX_NOT_FOUND" || error.title === "Validation" || error.title === "Request failed")
+    ) {
+      setTrackError(error);
+      setError(null);
+    }
+  }, [error, trackHash]);
 
   return (
     <main className="max-w-6xl mx-auto px-4 pb-12">
       <header className="my-6 space-y-4">
-        {/* Beginner-Friendly Introduction */}
-        {/* This whole section was added after user feedback - people were confused */}
-        <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-6 space-y-4">
-          <div className="text-center">
-            <p className="text-blue-300 text-sm">An educational tool to understand how Ethereum transactions really work</p>
+        <section className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 p-6">
+          <p className="text-xs uppercase tracking-wide text-cyan-200">Ethereum transaction lifecycle</p>
+          <h2 className="mt-1 text-3xl font-bold text-white">What actually happens after Send?</h2>
+          <p className="mt-3 max-w-3xl text-sm text-white/80">
+            Follow a transaction from wallet broadcast through pending flow, builder/relay markets, proposer selection, and finality.
+            The goal is a clean walkthrough backed by live network data, not another wall of protocol jargon.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <GlowButton ariaLabel="Start guided journey" compact onClick={() => setActivePanel("wallet")}>
+              Start walkthrough
+            </GlowButton>
+            <Link
+              href="/mev-lab"
+              className="rounded-lg border border-purple-400/30 bg-purple-500/10 px-3 py-2 text-sm text-purple-100 hover:bg-purple-500/20"
+            >
+              Go to MEV Lab
+            </Link>
           </div>
+        </section>
 
-          <div className="space-y-3 text-white/90">
-            <div className="rounded-lg p-4 border border-cyan-500/20 bg-gradient-to-br from-cyan-950/35 to-black/20">
-              <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
-                <span className="text-xl">🤔</span> What is this tool?
-              </h3>
-              <p className="text-sm leading-relaxed">
-                This visualizer shows you the <strong>real journey of an Ethereum transaction</strong> from the moment someone clicks "send"
-                to when it becomes permanent and irreversible. Think of it like tracking a package through the postal system,
-                but instead we're tracking digital money through a global computer network.
-              </p>
-            </div>
-
-            <div className="rounded-lg p-4 border border-purple-500/25 bg-gradient-to-br from-purple-950/35 to-black/20">
-              <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
-                <span className="text-xl">💡</span> What you'll learn:
-              </h3>
-              <ul className="text-sm space-y-2 ml-4">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400 mt-0.5">✓</span>
-                  <span><strong>How transactions work:</strong> What happens when you send cryptocurrency</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400 mt-0.5">✓</span>
-                  <span><strong>Gas fees explained:</strong> Why you pay fees and where that money goes</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400 mt-0.5">✓</span>
-                  <span><strong>MEV (Hidden profits):</strong> How professional traders extract value from transactions</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400 mt-0.5">✓</span>
-                  <span><strong>Security & Finality:</strong> How Ethereum prevents fraud and makes transactions permanent</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-              <h3 className="font-semibold text-yellow-300 mb-2 flex items-center gap-2">
-                Complete Beginner? Start Here:
-              </h3>
-              <div className="text-sm space-y-2">
-                <p><strong className="text-white">Ethereum</strong> = A global computer network where people can send digital money (ETH) and run programs</p>
-                <p><strong className="text-white">Transaction</strong> = Sending money or interacting with a program on Ethereum (like withdrawing from your bank account)</p>
-                <p><strong className="text-white">Validator</strong> = Computers that verify transactions are legitimate (like bank tellers checking your ID)</p>
-                <p><strong className="text-white">Block</strong> = A batch of ~200-400 transactions bundled together every 12 seconds (like a box of packages)</p>
-                <p className="text-yellow-200 text-xs mt-3 bg-yellow-500/10 p-2 rounded">
-                  💡 <strong>Real-world analogy:</strong> Imagine Ethereum as a global post office. Transactions are letters, validators are postal workers,
-                  and blocks are mail trucks that leave every 12 seconds. This tool shows you the entire journey of your letter!
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Status */}
-        {/* This gives users confidence that they're seeing real data */}
-        <div className="border rounded-lg p-4 text-center bg-green-400/10 border-green-400/30">
-          <div className="font-semibold mb-2 text-green-200">
-            ✅ Live Ethereum Data Connected
-          </div>
-          <div className="text-sm space-y-1 text-green-100">
-            <div>• <strong>Real-time transactions</strong> from the Ethereum network</div>
-            <div>• <strong>Live validator data</strong> showing actual block proposals</div>
-            <div className="text-xs mt-2 opacity-75">
-              All data is fetched from public APIs - you're seeing the real Ethereum network in action!
-            </div>
-          </div>
-        </div>
-
-        {/* Backend Status Indicator */}
         {backendReady !== null && (
-          <div className={`rounded-lg p-3 border ${
-            backendReady 
-              ? 'bg-green-500/10 border-green-500/30 text-green-300' 
-              : 'bg-red-500/10 border-red-500/30 text-red-300'
-          }`}>
+          <div
+            className={`rounded-lg border p-3 ${
+              backendReady ? "border-green-500/30 bg-green-500/10 text-green-300" : "border-red-500/30 bg-red-500/10 text-red-300"
+            }`}
+          >
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${
-                backendReady ? 'bg-green-400' : 'bg-red-400'
-              }`} />
-              <span className="text-sm font-medium">
-                {backendReady ? 'API Server Ready' : 'API Server Not Ready'}
-              </span>
+              <div className={`h-2 w-2 rounded-full ${backendReady ? "bg-green-400" : "bg-red-400"}`} />
+              <span className="text-sm font-medium">{backendReady ? "API Server Ready" : "API Server Not Ready"}</span>
               {!backendReady && (
-                <button 
-                  onClick={checkBackendHealth}
-                  className="ml-auto text-xs underline hover:no-underline"
-                >
+                <button onClick={checkBackendHealth} className="ml-auto text-xs underline hover:no-underline">
                   Retry
                 </button>
               )}
@@ -367,459 +318,205 @@ export default function Page() {
         )}
       </header>
 
-      {/* Step-by-step on-page guide */}
-      {/* This guide was essential - users didn't know where to start */}
-      <div className="my-6 bg-gradient-to-br from-green-500/10 to-cyan-500/10 border border-green-500/30 rounded-lg p-6">
-        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          How to Use This Tool - Beginner's Guide
-        </h3>
-
-        <div className="space-y-4 text-sm">
-          <div className="rounded-lg p-4 border border-cyan-500/20 bg-gradient-to-br from-cyan-950/35 to-black/20">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl font-bold text-green-400">1</span>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white mb-2">Start with the Mempool</h4>
-                <p className="text-white/80 leading-relaxed">
-                  Click <strong className="text-green-400">"1) Mempool"</strong> button below to see real transactions waiting to be processed.
-                  This is like looking at mail waiting to be sorted at the post office. You'll see:
-                </p>
-                <ul className="mt-2 ml-4 space-y-1 text-white/70">
-                  <li>• How many transactions are waiting</li>
-                  <li>• Current gas prices (fees people are paying)</li>
-                  <li>• Total value being transferred</li>
-                </ul>
-                <p className="mt-2 text-xs text-green-300 bg-green-500/10 p-2 rounded">
-                  💡 <strong>What to notice:</strong> Gas prices change constantly based on how many people are using Ethereum. Higher prices = more competition!
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg p-4 border border-purple-500/25 bg-gradient-to-br from-purple-950/35 to-black/20">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl font-bold text-purple-400">2-3</span>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white mb-2">See the MEV Competition</h4>
-                <p className="text-white/80 leading-relaxed">
-                  Click <strong className="text-purple-400">"2) Builders → Relays"</strong> to see professional block builders competing.
-                  Then <strong className="text-purple-400">"3) Relays → Validators"</strong> to see which blocks won. This shows:
-                </p>
-                <ul className="mt-2 ml-4 space-y-1 text-white/70">
-                  <li>• Multiple builders creating competing blocks for the same slot</li>
-                  <li>• How much they're bidding to have their block chosen</li>
-                  <li>• Only one winner per slot actually gets included on-chain</li>
-                </ul>
-                <p className="mt-2 text-xs text-purple-300 bg-purple-500/10 p-2 rounded">
-                  💡 <strong>Why this matters:</strong> Builders extract MEV (hidden profits) and share it with validators. This is how most validators earn extra income!
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg p-4 border border-cyan-500/20 bg-gradient-to-br from-cyan-950/35 to-black/20">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl font-bold text-blue-400">4</span>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white mb-2">Explore Proposed Blocks</h4>
-                <p className="text-white/80 leading-relaxed">
-                  Click <strong className="text-blue-400">"4) Proposed blocks + Builder payments"</strong> to see actual blocks that made it on-chain.
-                  Compare MEV-Boost blocks (built by professionals) vs Vanilla blocks (built locally). You'll learn:
-                </p>
-                <ul className="mt-2 ml-4 space-y-1 text-white/70">
-                  <li>• How validators earn money (base rewards + tips + builder payments)</li>
-                  <li>• Block fullness and gas utilization</li>
-                  <li>• Which builders are dominating the market</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg p-4 border border-purple-500/25 bg-gradient-to-br from-purple-950/35 to-black/20">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl font-bold text-cyan-400">5</span>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white mb-2">Understand Finality</h4>
-                <p className="text-white/80 leading-relaxed">
-                  Click <strong className="text-cyan-400">"5) Finality checkpoints"</strong> to see how transactions become permanent.
-                  This explains Ethereum's security mechanism:
-                </p>
-                <ul className="mt-2 ml-4 space-y-1 text-white/70">
-                  <li>• Justification → Finalization process</li>
-                  <li>• Why exchanges wait ~15 minutes for large deposits</li>
-                  <li>• Economic security ($30+ billion to reverse finalized blocks)</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg p-4 border border-cyan-500/20 bg-gradient-to-br from-cyan-950/35 to-black/20">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl font-bold text-orange-400">6</span>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white mb-2">Detect MEV Attacks</h4>
-                <p className="text-white/80 leading-relaxed">
-                  Click <strong className="text-orange-400">"6) MEV detector"</strong> and enter a block number (or use "latest").
-                  This scans for sandwich attacks - a type of frontrunning where traders profit at victims' expense.
-                </p>
-                <p className="mt-2 text-xs text-orange-300 bg-orange-500/10 p-2 rounded">
-                  ⚠️ <strong>Real MEV:</strong> ~5-10% of blocks contain detectable sandwich attacks. This shows how traders lose money to MEV every day!
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-yellow-500/20 to-green-500/20 border border-yellow-500/40 rounded-lg p-4 mt-4">
-            <h4 className="font-semibold text-yellow-300 mb-2 flex items-center gap-2">
-              <span>✨</span> Pro Tip for Beginners
-            </h4>
-            <p className="text-white/90 text-sm">
-              Don't worry if some terms are confusing at first! Hover over highlighted terms in the glossary (right sidebar) for instant definitions.
-              Each panel has detailed explanations with real-world analogies. Take your time exploring each section - this is complex stuff,
-              but understanding it gives you superpowers in the crypto world!
-            </p>
-          </div>
+      <section className="my-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <h3 className="mb-3 text-lg font-semibold text-white">Lifecycle controls</h3>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3" role="group" aria-label="Lifecycle controls">
+          {lifecycleButtons.map((item) => (
+            <GlowButton
+              key={item.id}
+              ariaLabel={`Open ${item.title}`}
+              onClick={() => onSelectPanel(item.id, item.shouldLoad)}
+              className={`text-left ${item.accentClass} ${activePanel === item.id ? "ring-2 ring-neon-blue" : ""}`}
+            >
+              <div className="font-semibold">{item.title}</div>
+              <div className="mt-1 text-xs text-white/70">{item.subtitle}</div>
+            </GlowButton>
+          ))}
         </div>
-      </div>
+        <p className="mt-3 text-xs text-white/60">
+          Want extraction details? Use the dedicated{" "}
+          <Link href="/mev-lab" className="underline">
+            MEV Lab
+          </Link>{" "}
+          for advanced analysis, pre-vs-post PBS diagrams, and estimate methodology.
+        </p>
+      </section>
 
-      {/* Main control buttons - these trigger data loading and panel display */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3" role="group" aria-label="Data fetch controls">
-        <GlowButton
-          ariaLabel="Toggle mempool"
-          onClick={async () => {
-            // Toggle panel - close if open, open if closed
-            if (activePanel === "mempool") {
-              setActivePanel(null);
-            } else {
-              // Load data if we don't have it yet
-              if (!mempool) {
-                await loadSnapshot(false);
-              }
-              setActivePanel("mempool");
-            }
-          }}
-          className={activePanel === "mempool" ? "ring-2 ring-blue-500" : ""}
-        >
-          1) Mempool
-        </GlowButton>
-
-        <GlowButton
-          ariaLabel="Toggle builder blocks received"
-          onClick={async () => {
-            // Same pattern for all buttons - toggle and lazy load
-            if (activePanel === "received") {
-              setActivePanel(null);
-            } else {
-              if (!received) {
-                await loadSnapshot(false);
-              }
-              setActivePanel("received");
-            }
-          }}
-          className={activePanel === "received" ? "ring-2 ring-blue-500" : ""}
-        >
-          2) Builders → Relays (received)
-        </GlowButton>
-
-        <GlowButton
-          ariaLabel="Toggle delivered payloads"
-          onClick={async () => {
-            if (activePanel === "delivered") {
-              setActivePanel(null);
-            } else {
-              if (!delivered) {
-                await loadSnapshot(false);
-              }
-              setActivePanel("delivered");
-            }
-          }}
-          className={activePanel === "delivered" ? "ring-2 ring-blue-500" : ""}
-        >
-          3) Relays → Validators (delivered)
-        </GlowButton>
-
-        <GlowButton
-          ariaLabel="Toggle beacon headers"
-          onClick={async () => {
-            if (activePanel === "headers") {
-              setActivePanel(null);
-            } else {
-              if (!headers) {
-                await loadSnapshot(false);
-              }
-              setActivePanel("headers");
-            }
-          }}
-          className={activePanel === "headers" ? "ring-2 ring-blue-500" : ""}
-        >
-          4) Proposed blocks + Builder payments
-        </GlowButton>
-
-        <GlowButton
-          ariaLabel="Toggle finality checkpoints"
-          onClick={async () => {
-            if (activePanel === "finality") {
-              setActivePanel(null);
-            } else {
-              if (!finality) {
-                await loadSnapshot(false);
-              }
-              setActivePanel("finality");
-            }
-          }}
-          className={activePanel === "finality" ? "ring-2 ring-blue-500" : ""}
-        >
-          5) Finality checkpoints
-        </GlowButton>
-
-        <GlowButton
-          ariaLabel="Toggle MEV detector"
-          onClick={async () => {
-            if (activePanel === "mev") {
-              setActivePanel(null);
-            } else {
-              if (!mev) {
-                await loadSnapshot(true, mevBlock || "latest");
-              }
-              setActivePanel("mev");
-            }
-          }}
-          className={activePanel === "mev" ? "ring-2 ring-blue-500" : ""}
-        >
-          6) MEV detector
-        </GlowButton>
-      </div>
-
-      {/* Transaction Flow Diagram - Full Width */}
-      {/* This is the heart of the app - shows the visual flow */}
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-neon-blue mb-4 text-center">Transaction Flow</h2>
+        <h2 className="mb-4 text-center text-2xl font-semibold text-neon-blue">Transaction Flow</h2>
         <MermaidDiagram stages={stages} />
+        <PostOfficeAnalogy />
       </div>
 
-      {/* Conditional panel rendering based on activePanel state */}
+      {activePanel === "wallet" && (
+        <Panel id="panel-wallet" title="Wallet send (drop letter in mailbox)">
+          <div className="space-y-3 text-sm text-white/85">
+            <p>
+              A wallet signs your transaction locally, then broadcasts it to peers. In the analogy, you pay a variable stamp and
+              drop your letter into the public mailbox.
+            </p>
+            <p className="rounded border border-amber-400/20 bg-amber-500/10 p-3 text-amber-100">
+              Technical note: the network does not guarantee first-come-first-served ordering. Fee pressure and builder strategy
+              strongly influence what gets included next.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/mev-lab"
+                className="rounded border border-purple-400/30 bg-purple-500/10 px-3 py-2 text-xs text-purple-100 hover:bg-purple-500/20"
+              >
+                Open MEV Lab
+              </Link>
+            </div>
+          </div>
+        </Panel>
+      )}
+
       {activePanel === "mempool" && (
-        <Panel id="panel-mempool" title="Mempool (public txs seen by your Geth)">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+        <Panel id="panel-mempool" title="Mempool (local sorting room)">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className="text-white/70">
-              Execution-layer mempool data from <code>txpool_status</code> and <code>txpool_content</code> (Geth-specific
-              RPC namespace).
+              Pending letters waiting for packaging. Data comes from <code>txpool_status</code> and <code>txpool_content</code>.
             </p>
             <CaptureButton targetId="panel-mempool" />
           </div>
-          {/* Debug info showing which APIs we're connected to */}
           <div className="mt-2 text-xs text-white/60">
-            Feeds: WS {sources?.rpc_ws || 'unset'}; HTTP {sources?.rpc_http || 'unset'}{mempool?.source ? ` (source=${mempool.source})` : ''}
+            Feeds: WS {sources?.rpc_ws || "unset"}; HTTP {sources?.rpc_http || "unset"}
+            {mempool?.source ? ` (source=${mempool.source})` : ""}
           </div>
 
-          {/* Mempool Metrics Summary - these cards show key stats at a glance */}
           {Boolean(mempoolMetrics) && (
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-lg p-4">
-                <div className="text-blue-400 text-xs font-medium mb-1">Total Transactions</div>
-                <div className="text-white text-2xl font-bold">{formatNumber(mempool?.count || 0)}</div>
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-blue-600/5 p-4">
+                <div className="mb-1 text-xs font-medium text-blue-400">Total Transactions</div>
+                <div className="text-2xl font-bold text-white">{formatNumber(mempool?.count || 0)}</div>
               </div>
-              <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 rounded-lg p-4">
-                <div className="text-purple-400 text-xs font-medium mb-1">Gas Requested</div>
-                <div className="text-white text-2xl font-bold">{formatNumber(mempoolMetrics?.totalGasRequested || 0)}</div>
-                <div className="text-white/60 text-xs mt-1">gas units</div>
+              <div className="rounded-lg border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-purple-600/5 p-4">
+                <div className="mb-1 text-xs font-medium text-purple-400">Gas Requested</div>
+                <div className="text-2xl font-bold text-white">{formatNumber(mempoolMetrics?.totalGasRequested || 0)}</div>
+                <div className="mt-1 text-xs text-white/60">gas units</div>
               </div>
-              <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-lg p-4">
-                <div className="text-green-400 text-xs font-medium mb-1">Total Value</div>
-                <div className="text-white text-2xl font-bold">{weiToEth(mempoolMetrics?.totalValueWei || '0x0')}</div>
-                <div className="text-white/60 text-xs mt-1">ETH</div>
+              <div className="rounded-lg border border-green-500/20 bg-gradient-to-br from-green-500/10 to-green-600/5 p-4">
+                <div className="mb-1 text-xs font-medium text-green-400">Total Value</div>
+                <div className="text-2xl font-bold text-white">{weiToEth(mempoolMetrics?.totalValueWei || "0x0")}</div>
+                <div className="mt-1 text-xs text-white/60">ETH</div>
               </div>
-              <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-500/20 rounded-lg p-4">
-                <div className="text-orange-400 text-xs font-medium mb-1">Avg Gas Price</div>
-                <div className="text-white text-2xl font-bold">{avgGasPrice.toFixed(2)}</div>
-                <div className="text-white/60 text-xs mt-1">gwei</div>
+              <div className="rounded-lg border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-orange-600/5 p-4">
+                <div className="mb-1 text-xs font-medium text-orange-400">Avg Gas Price</div>
+                <div className="text-2xl font-bold text-white">{avgGasPrice.toFixed(2)}</div>
+                <div className="mt-1 text-xs text-white/60">gwei</div>
               </div>
             </div>
           )}
 
-          {/* High Priority Badge - shows when there are expensive transactions */}
           {(mempoolMetrics?.highPriorityCount || 0) > 0 && (
-            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-full text-sm">
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm">
               <span className="text-red-400">🔥</span>
               <span className="text-white/90">
-                {mempoolMetrics?.highPriorityCount} high-priority tx{mempoolMetrics?.highPriorityCount !== 1 ? 's' : ''} (&gt;50 gwei)
+                {mempoolMetrics?.highPriorityCount} high-priority tx{mempoolMetrics?.highPriorityCount !== 1 ? "s" : ""} (&gt;50 gwei)
               </span>
             </div>
           )}
 
-          {/* Gas Economics Explainer - this helps users understand what they're seeing */}
-          {Boolean(mempoolMetrics) && (
-            <div className="mt-4 bg-blue-500/5 border border-blue-500/20 rounded-lg p-3 text-sm space-y-2">
-              <div className="flex items-start gap-2">
-                <span className="text-blue-400 text-lg">💡</span>
-                <div className="text-white/80 space-y-2">
-                  <div>
-                    <strong className="text-white">Gas Economics - Base Fee vs Priority Fee (Tips):</strong>
-                  </div>
-                  <ul className="list-disc list-inside space-y-1 text-xs ml-4">
-                    <li><strong>Base Fee (Burned):</strong> Minimum fee required, dynamically adjusted based on network congestion. This ETH is destroyed (deflationary)</li>
-                    <li><strong>Priority Fee / Tip (To Validator):</strong> Extra payment to incentivize miners/validators to include your transaction sooner</li>
-                    <li><strong>High Gas = Competition:</strong> Users pay higher priority fees during congestion to get included faster (like bidding in an auction)</li>
-                    <li><strong>Total Cost:</strong> You pay (Base Fee + Priority Fee) × Gas Used. Higher tips = faster inclusion</li>
-                    <li><strong>Avg {avgGasPrice.toFixed(2)} gwei:</strong> Current average total gas price in mempool. Network is {avgGasPrice > 50 ? 'VERY congested' : avgGasPrice > 20 ? 'moderately busy' : 'relatively quiet'}</li>
-                  </ul>
-                  <div className="text-blue-400 text-xs bg-blue-400/10 border border-blue-400/20 rounded p-2 mt-2">
-                    💰 <strong>Example:</strong> A simple ETH transfer (21,000 gas) at {avgGasPrice.toFixed(2)} gwei costs ~{(21000 * avgGasPrice / 1e9).toFixed(6)} ETH.
-                    Complex DeFi transactions can use 10x more gas!
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {mempool ? (
-            <MempoolView data={mempool} />
-          ) : (
-            <p className="text-white/60 text-sm mt-4">Loading mempool snapshot…</p>
-          )}
-          <p className="text-white/60 text-sm mt-2">
+          <StampPricingCard avgGasPriceGwei={avgGasPrice} className="mt-4" />
+          {mempool ? <MempoolView data={mempool} /> : <p className="mt-4 text-sm text-white/60">Loading mempool snapshot…</p>}
+          <p className="mt-2 text-sm text-white/60">
             Tip: live feeds use WebSocket <code>eth_subscribe("newPendingTransactions")</code>.
           </p>
         </Panel>
       )}
 
-      {/* Builder blocks received panel - shows MEV competition */}
       {activePanel === "received" && (
-        <Panel id="panel-received" variant="alt" title="Builders → Relays (builder_blocks_received)">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+        <Panel id="panel-received" variant="alt" title="Builders/searchers (logistics optimizers)">
+          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className="text-white/70">
-              Shows which builders are submitting payloads to relays—this activity lives outside your execution client.
+              Competing builder proposals for the same slot. This is where optimization and bidding pressure appears.
             </p>
             <CaptureButton targetId="panel-received" />
           </div>
           <div className="mb-3 text-xs text-white/60">
-            Relays (configured): {Array.isArray(sources?.relays) ? sources.relays.join(', ') : 'n/a'}
+            Relays (configured): {Array.isArray(sources?.relays) ? sources.relays.join(", ") : "n/a"}
           </div>
           {received ? <BuilderRelayView data={received} /> : <p className="text-white/60">Loading...</p>}
         </Panel>
       )}
 
-      {/* Delivered payloads panel - shows which blocks actually won */}
       {activePanel === "delivered" && (
-        <Panel id="panel-delivered" title="Relays → Validators (proposer_payload_delivered)">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+        <Panel id="panel-delivered" title="Relays (trusted handoff depots)">
+          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className="text-white/70">
-              Delivers show which payload ultimately reached the proposer, including total value and transaction counts.
+              Relay delivery view of which payloads reached proposers with payment and transaction count context.
             </p>
             <CaptureButton targetId="panel-delivered" />
           </div>
           <div className="mb-3 text-xs text-white/60">
-            Relays (configured): {Array.isArray(sources?.relays) ? sources.relays.join(', ') : 'n/a'}
+            Relays (configured): {Array.isArray(sources?.relays) ? sources.relays.join(", ") : "n/a"}
           </div>
           {delivered ? <RelayDeliveredView data={delivered} /> : <p className="text-white/60">Loading...</p>}
         </Panel>
       )}
 
-      {/* Beacon headers panel - shows actual blocks on-chain */}
       {activePanel === "headers" && (
-        <Panel id="panel-headers" variant="alt" title="Proposed blocks + Builder payments">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+        <Panel id="panel-headers" variant="alt" title="Validators/proposers (dispatch authority)">
+          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className="text-white/70">
-              Consensus-layer head headers with builder payment data, gas usage, and block utilization metrics.
+              Consensus-layer headers with builder-payment enrichment when available.
             </p>
             <CaptureButton targetId="panel-headers" />
           </div>
-          <div className="mb-3 text-xs text-white/60">
-            Beacon API: {sources?.beacon_api || 'unset'}
-          </div>
+          <div className="mb-3 text-xs text-white/60">Beacon API: {sources?.beacon_api || "unset"}</div>
+          <StampPricingCard avgGasPriceGwei={avgGasPrice} className="mb-3" />
           {headers ? <BeaconHeadersView data={headers} /> : <p className="text-white/60">Loading...</p>}
         </Panel>
       )}
 
-      {/* Finality checkpoints panel - shows when blocks become permanent */}
       {activePanel === "finality" && (
-        <Panel id="panel-finality" title="Finality checkpoints (Casper-FFG)">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+        <Panel id="panel-finality" title="Finality (certified delivery lock)">
+          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className="text-white/70">
-              Finalized and justified checkpoints show when proposals become irreversible under Casper-FFG.
+              Finalized and justified checkpoints show when recent proposals become practically irreversible.
             </p>
             <CaptureButton targetId="panel-finality" />
           </div>
-          <div className="mb-3 text-xs text-white/60">
-            Beacon API: {sources?.beacon_api || 'unset'}
-          </div>
+          <div className="mb-3 text-xs text-white/60">Beacon API: {sources?.beacon_api || "unset"}</div>
           {finality ? <FinalityView data={finality} /> : <p className="text-white/60">Loading...</p>}
         </Panel>
       )}
 
-      {/* MEV detector panel - this is the fun one! */}
-      {activePanel === "mev" && (
-        <Panel id="panel-mev" variant="alt" title="MEV detector (sandwiches, arbitrage, liquidations, JIT)">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="md:w-2/3 text-white/70">
-              Scans a block for swaps where the same address wraps a victim trade in the same pool. Attackers are tinted
-              orange, victims yellow—purely educational and not production-grade forensics.
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                value={mevBlock}
-                onChange={(event) => setMevBlock(event.target.value)}
-                placeholder="latest or 0x..."
-                aria-label="Block number or tag"
-                className="bg-black/40 border border-white/10 rounded px-2 py-1 text-sm"
-              />
-              <GlowButton ariaLabel="Analyze block" onClick={async () => {
-                // MEV analysis is expensive so we only do it on demand
-                const target = mevBlock || "latest";
-                const result = await safeFetch<MevData>(`/api/mev/sandwich?block=${encodeURIComponent(target)}`);
-                const data = unwrapData<MevData>(result);
-                if (data) {
-                  setMev({ data });
-                }
-              }}>
-                Analyze
-              </GlowButton>
-              <CaptureButton targetId="panel-mev" />
-            </div>
-          </div>
-          <div className="mb-3 text-xs text-white/60">
-            RPC (block/receipts): {mev?.data?.sources?.rpc_http || sources?.rpc_http || 'unset'}
-          </div>
-          {mev?.data ? <MEVView data={mev.data} /> : <p className="text-white/60">Run an analysis with the button above.</p>}
-        </Panel>
-      )}
-
-      {/* Transaction tracking feature - lets users follow a specific tx */}
       <Panel id="panel-tracker" title="Track a transaction">
         <p className="text-white/70">
-          Enter a transaction hash (or type <strong className="text-white">latest</strong>) to stitch together its journey: execution inclusion, relay bidtraces, and an
-          approximate finality check using beacon checkpoints.
+          Enter a transaction hash (or type <strong className="text-white">latest</strong>) to stitch together its journey:
+          execution inclusion, relay context, and an approximate finality check.
         </p>
-        <div className="mt-3 flex flex-col md:flex-row gap-2">
+        <div className="mt-3 flex flex-col gap-2 md:flex-row">
           <input
             value={trackHash}
             onChange={(event) => setTrackHash(event.target.value)}
             placeholder="0x... or latest"
             aria-label="Transaction hash or latest"
-            className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2 text-sm"
+            className="flex-1 rounded border border-white/10 bg-black/40 px-3 py-2 text-sm"
           />
-          <GlowButton ariaLabel="Track transaction" onClick={async () => {
-            // Basic validation before making API call
-            if (!trackHash) {
-              setTrackError({ title: "Validation", message: "Enter a transaction hash or \"latest\"" });
-              return;
-            }
-            setTracked(null);
-            setTrackError(null); // Clear previous tracking errors
-            setTrackLoading(true);
-            setTrackDetailsHidden(false); // Show details when tracking new transaction
-            const result = await safeFetch<TrackTxData>(`/api/track/tx/${trackHash}`);
-            setTrackLoading(false);
-            const data = unwrapData<TrackTxData>(result);
-            if (data) {
-              setTracked(data);
-              setTrackError(null); // Clear error on success
-            }
-            // Note: Errors are handled by the useEffect hook above
-          }}>
+          <GlowButton
+            ariaLabel="Track transaction"
+            onClick={async () => {
+              if (!trackHash) {
+                setTrackError({ title: "Validation", message: "Enter a transaction hash or \"latest\"" });
+                return;
+              }
+              setTracked(null);
+              setTrackError(null);
+              setTrackLoading(true);
+              setTrackDetailsHidden(false);
+              const result = await safeFetch<TrackTxData>(`/api/track/tx/${trackHash}`);
+              setTrackLoading(false);
+              const data = unwrapData<TrackTxData>(result);
+              if (data) {
+                setTracked(data);
+                setTrackError(null);
+              }
+            }}
+          >
             Track
           </GlowButton>
-          {/* Toggle button for hiding/showing transaction details */}
           {tracked && (
             <GlowButton
               ariaLabel={trackDetailsHidden ? "Show transaction details" : "Hide transaction details"}
@@ -830,9 +527,8 @@ export default function Page() {
           )}
           <CaptureButton targetId="panel-tracker" />
         </div>
-        {/* Transaction details display - conditionally shown */}
         {!trackDetailsHidden && (
-          <div className="mt-3 overflow-auto max-h-96 text-xs bg-black/40 p-3 rounded-lg border border-white/10">
+          <div className="mt-3 max-h-96 overflow-auto rounded-lg border border-white/10 bg-black/40 p-3 text-xs">
             {trackLoading ? (
               <p className="text-white/60">Loading transaction data...</p>
             ) : tracked ? (
@@ -842,87 +538,77 @@ export default function Page() {
             )}
           </div>
         )}
-        {/* Show tracking-related errors below the input section */}
         {trackError && (
           <div className="mt-3">
             <Alert title={trackError.title} message={trackError.message} hint={trackError.hint} />
           </div>
         )}
-        {/* Global error display moved under tracker */}
         {error && !trackError ? (
           <div className="mt-3">
             <Alert title={error.title} message={error.message} hint={error.hint} />
           </div>
         ) : null}
         {trackDetailsHidden && tracked && (
-          <div className="mt-3 p-3 bg-black/20 border border-white/10 rounded-lg text-center">
-            <p className="text-white/60 text-sm">Transaction details hidden. Click "Unhide" to view.</p>
+          <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-center">
+            <p className="text-sm text-white/60">Transaction details hidden. Click "Unhide" to view.</p>
           </div>
         )}
       </Panel>
 
-      {/* Summary panel explaining the whole process */}
-      <Panel id="panel-wrap" variant="alt" title="Wrap-up: how a tx becomes finalized">
-        <ol className="list-decimal pl-5 space-y-1 text-white/80">
+      <Panel id="panel-wrap" variant="alt" title="Wrap-up: lifecycle map">
+        <ol className="list-decimal space-y-1 pl-5 text-white/80">
           <li>
-            <strong>Broadcast</strong>: the transaction reaches public mempools. Visibility depends on which peers relay
-            it to you.
+            <strong>Wallet send</strong>: user signs and broadcasts a transaction.
           </li>
           <li>
-            <strong>PBS off-chain</strong>: searchers craft bundles, builders assemble blocks, and relays auction them to
-            validators (MEV-Boost).
+            <strong>Mempool queue</strong>: pending transactions compete via fee pressure.
           </li>
           <li>
-            <strong>Proposal</strong>: a validator proposes the block at its slot, visible through beacon headers.
+            <strong>Builders/searchers</strong>: candidate blocks are optimized and bid.
           </li>
           <li>
-            <strong>Finality</strong>: Casper-FFG finalizes epochs once enough attestations confirm the block.
+            <strong>Relays</strong>: candidate payloads are delivered to proposers.
+          </li>
+          <li>
+            <strong>Validators/proposers</strong>: one proposal is published per slot.
+          </li>
+          <li>
+            <strong>Finality</strong>: justified/finalized checkpoints lock history.
           </li>
         </ol>
+        <p className="mt-3 text-xs text-white/65">
+          For extraction economics and pre-vs-post PBS context, continue in{" "}
+          <Link href="/mev-lab" className="underline">
+            MEV Lab
+          </Link>
+          .
+        </p>
       </Panel>
 
-      {/* Glossary moved to bottom - contains definitions for all the crypto terms */}
-      <div className="mt-8">
-        <Glossary />
-      </div>
-
-      {/* Footer with social links */}
-      <footer className="mt-12 pt-6 border-t border-white/10">
+      <footer className="mt-12 border-t border-white/10 pt-6">
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-6">
-            {/* Twitter/X Link */}
             <a
               href="https://twitter.com/DanQB13"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-white/70 hover:text-white transition-colors group"
+              className="group flex items-center gap-2 text-white/70 transition-colors hover:text-white"
               aria-label="Follow on X/Twitter"
             >
-              <svg
-                className="w-5 h-5 group-hover:scale-110 transition-transform"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
+              <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
               </svg>
               <span className="text-sm font-medium">@DanQB13</span>
             </a>
 
-            {/* GitHub Link */}
             <a
               href="https://github.com/DanDo385/eth-tx-lifecycle"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-white/70 hover:text-white transition-colors group"
+              className="group flex items-center gap-2 text-white/70 transition-colors hover:text-white"
               aria-label="View source on GitHub"
             >
-              <svg
-                className="w-5 h-5 group-hover:scale-110 transition-transform"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
+              <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   fillRule="evenodd"
                   d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
@@ -933,9 +619,7 @@ export default function Page() {
             </a>
           </div>
 
-          <p className="text-white/50 text-xs">
-            Built with ❤️ for Ethereum education
-          </p>
+          <p className="text-xs text-white/50">Built with ❤️ for Ethereum education</p>
         </div>
       </footer>
     </main>
