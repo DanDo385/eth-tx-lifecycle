@@ -9,10 +9,10 @@ export default function StampPricingCard({ avgGasPriceGwei = 0, className = "" }
 
   return (
     <div className={`rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-3 text-sm ${className}`}>
-      <h4 className="font-semibold text-cyan-300">Stamp pricing analogy: variable postage</h4>
+      <h4 className="font-semibold text-cyan-300">Gas pricing: base fee + priority fee</h4>
       <p className="mt-1 text-white/80">
-        In this story, each transaction is a letter and gas is the stamp price. When the mailroom is busy, stamps cost more.
-        Letters that add a bigger express tip usually get packed into the next outgoing bag first.
+        Every transaction pays for gas used. The base fee is set by the protocol, while the priority fee is the user tip that can
+        improve inclusion odds when blockspace is competitive.
       </p>
       <p className="mt-2 rounded border border-cyan-400/20 bg-cyan-400/10 p-2 text-xs text-cyan-100">
         Actual formula: Ethereum pricing is{" "}

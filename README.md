@@ -1,37 +1,19 @@
 # eth-tx-lifecycle - Ethereum Transaction Lifecycle Visualizer
 
-`eth-tx-lifecycle` is a full-stack educational explorer that makes Ethereum's post-click transaction pipeline legible through a core post-office mapping: wallet send, mempool queue, builder/searcher optimization, relay handoff, proposer dispatch, and Casper finality lock. A Go backend aggregates heterogeneous upstreams (execution JSON-RPC, consensus REST, and MEV relays) with timeouts, fallback behavior, and caching; a Next.js frontend turns raw chain data into a guided, beginner-first narrative while preserving live-data evidence.
+`eth-tx-lifecycle` is a full-stack educational explorer that makes Ethereum's post-click transaction pipeline legible: wallet send, mempool queue, builder/searcher optimization, relay handoff, block proposal, and Casper finality. A Go backend aggregates heterogeneous upstreams (execution JSON-RPC, consensus REST, and MEV relays) with timeouts, fallback behavior, and caching; a Next.js frontend turns raw chain data into a guided lifecycle narrative while preserving live-data evidence.
 
-## Ethereum in Plain English (Post Office Analogy)
+## Ethereum Transaction Lifecycle
 
-If you're brand new, start here:
+The app follows six steps:
 
-- Ethereum is a global transaction network.
-- A transaction is a letter you want delivered.
-- Gas is the stamp price you pay for processing.
-- Validators/proposers are dispatch authorities choosing which bag leaves next.
-- Finality is the certified lock that makes the delivery record extremely hard to reverse.
+1. **Wallet send** - a wallet signs and broadcasts a transaction.
+2. **Mempool** - pending transactions compete for blockspace under fee pressure.
+3. **Builders/searchers** - specialized actors construct candidate blocks and optimize ordering.
+4. **Relays** - builder payloads are handed to proposers through MEV-Boost infrastructure.
+5. **Validators/proposers** - one block is proposed for the slot.
+6. **Finality** - justified and finalized checkpoints make history economically hard to reverse.
 
-### Core Mapping Used In This Project
-
-1. **Wallet send -> Drop letter in mailbox**  
-   Your wallet signs a transaction and broadcasts it to peers.
-2. **Mempool -> Local sorting room**  
-   Pending letters wait in queue-like bins while fee pressure changes urgency.
-3. **Builders/searchers -> Logistics optimizers**  
-   Specialized teams build competing route plans (candidate blocks).
-4. **Relays -> Trusted handoff depots**  
-   Candidate dispatch bags are checked and forwarded.
-5. **Validators/proposers -> Dispatch authority**  
-   One valid bag is selected and sent for that slot.
-6. **Finality -> Certified delivery lock**  
-   Checkpoints confirm records and make them economically irreversible.
-
-### Why This Analogy Works
-
-- It gives beginners a mental model before protocol jargon.
-- It preserves technical correctness through "reality check" callouts in UI.
-- It pairs narrative with live evidence so users see this is not mock data.
+The homepage keeps the transaction-flow diagram and the selected-step explanation synchronized, so users can move through the pipeline without a redundant glossary or decorative image cards.
 
 ## What You'll Learn
 
@@ -46,8 +28,8 @@ If you're brand new, start here:
 
 ### For Beginners
 - **Core Lifecycle Guide (`/`)** - wallet -> mempool -> builders/searchers -> relays -> proposers -> finality
-- **Creative Analogy + Reality Checks** - each post-office scene includes a technical correction
-- **Stamp Pricing Explainers** - variable postage analogy mapped to base fee + priority fee mechanics
+- **Synced Step Explainer** - selecting a flow step updates the technical note and live-data explanation
+- **Gas Pricing Explainers** - base fee + priority fee mechanics mapped to current network data
 - **Visual Metrics** - user-friendly cards showing gas prices, transaction counts, and proposer economics
 
 ### Advanced / Infra-Focused
@@ -132,7 +114,7 @@ make status     # Check if services are running
 
 ### Lifecycle Guide (`/`)
 
-The default route is a beginner-first core flow:
+The default route is a guided core flow:
 
 1. **Wallet send** - your signed transaction enters the network.
 2. **Mempool** - pending transactions wait in a queue-like market.

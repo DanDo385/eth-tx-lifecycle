@@ -5,8 +5,7 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "lint": "tsc --noEmit",
-    "analogy:prompts": "node scripts/generate-analogy-prompts.mjs"
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "html2canvas": "^1.4.1",

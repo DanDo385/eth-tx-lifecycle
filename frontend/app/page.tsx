@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import GlowButton from "./components/GlowButton";
 import Panel from "./components/Panel";
 import CaptureButton from "./components/CaptureButton";
 import MermaidDiagram from "./components/MermaidDiagram";
-import PostOfficeAnalogy from "./components/PostOfficeAnalogy";
+import LifecycleStepExplainer, { type LifecyclePanel } from "./components/LifecycleStepExplainer";
 import StampPricingCard from "./components/StampPricingCard";
 import Alert from "./components/Alert";
 import TransactionView from "./components/TransactionView";
@@ -29,7 +29,6 @@ import type {
 } from "./types/api";
 
 type ErrState = { title: string; message?: string; hint?: string } | null;
-type LifecyclePanel = "wallet" | "mempool" | "received" | "delivered" | "headers" | "finality";
 
 function hasEnvelopeData<T>(value: unknown): value is EduEnvelope<T> {
   return (
@@ -70,17 +69,6 @@ export default function Page() {
   const mempoolMetrics = mempool?.metrics;
   const avgGasPrice = mempoolMetrics?.avgGasPrice ?? 0;
 
-  const stages = useMemo(
-    () => ({
-      mempool: activePanel === "mempool",
-      pbs: activePanel === "received" || activePanel === "delivered",
-      relays: activePanel === "received" || activePanel === "delivered",
-      proposal: activePanel === "headers",
-      finality: activePanel === "finality",
-    }),
-    [activePanel]
-  );
-
   const lifecycleButtons: Array<{
     id: LifecyclePanel;
     title: string;
@@ -91,42 +79,42 @@ export default function Page() {
     {
       id: "wallet",
       title: "1) Wallet send",
-      subtitle: "Drop letter in mailbox",
+      subtitle: "Sign and broadcast",
       accentClass: "border-cyan-400/40",
       shouldLoad: false,
     },
     {
       id: "mempool",
       title: "2) Mempool",
-      subtitle: "Local sorting room",
+      subtitle: "Pending flow",
       accentClass: "border-cyan-400/40",
       shouldLoad: !mempool,
     },
     {
       id: "received",
       title: "3) Builders/searchers",
-      subtitle: "Logistics optimizers",
+      subtitle: "Block construction",
       accentClass: "border-purple-400/40",
       shouldLoad: !received,
     },
     {
       id: "delivered",
       title: "4) Relays",
-      subtitle: "Trusted handoff depots",
+      subtitle: "Payload handoff",
       accentClass: "border-purple-400/40",
       shouldLoad: !delivered,
     },
     {
       id: "headers",
       title: "5) Validators/proposers",
-      subtitle: "Dispatch authority",
+      subtitle: "Slot proposer",
       accentClass: "border-blue-400/40",
       shouldLoad: !headers,
     },
     {
       id: "finality",
       title: "6) Finality",
-      subtitle: "Certified delivery lock",
+      subtitle: "Checkpoint lock",
       accentClass: "border-emerald-400/40",
       shouldLoad: !finality,
     },
@@ -250,11 +238,9 @@ export default function Page() {
     setLastSnapAt(now);
   }
 
-  const onSelectPanel = async (panelId: LifecyclePanel, shouldLoad: boolean) => {
-    if (activePanel === panelId) {
-      setActivePanel(null);
-      return;
-    }
+  const shouldLoadPanel = (panelId: LifecyclePanel) => lifecycleButtons.find((item) => item.id === panelId)?.shouldLoad ?? false;
+
+  const onSelectPanel = async (panelId: LifecyclePanel, shouldLoad = shouldLoadPanel(panelId)) => {
     if (shouldLoad) {
       await loadSnapshot();
     }
@@ -343,17 +329,16 @@ export default function Page() {
       </section>
 
       <div className="mb-8">
-        <h2 className="mb-4 text-center text-2xl font-semibold text-neon-blue">Transaction Flow</h2>
-        <MermaidDiagram stages={stages} />
-        <PostOfficeAnalogy />
+        <MermaidDiagram activePanel={activePanel} onSelectPanel={(panelId) => onSelectPanel(panelId)} />
+        <LifecycleStepExplainer activePanel={activePanel} />
       </div>
 
       {activePanel === "wallet" && (
-        <Panel id="panel-wallet" title="Wallet send (drop letter in mailbox)">
+        <Panel id="panel-wallet" title="Wallet send">
           <div className="space-y-3 text-sm text-white/85">
             <p>
-              A wallet signs your transaction locally, then broadcasts it to peers. In the analogy, you pay a variable stamp and
-              drop your letter into the public mailbox.
+              A wallet signs your transaction locally, then broadcasts it to peers. It is now visible to the network, but it is not
+              included in chain history until a block proposal contains it.
             </p>
             <p className="rounded border border-amber-400/20 bg-amber-500/10 p-3 text-amber-100">
               Technical note: the network does not guarantee first-come-first-served ordering. Fee pressure and builder strategy
@@ -372,10 +357,10 @@ export default function Page() {
       )}
 
       {activePanel === "mempool" && (
-        <Panel id="panel-mempool" title="Mempool (local sorting room)">
+        <Panel id="panel-mempool" title="Mempool">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className="text-white/70">
-              Pending letters waiting for packaging. Data comes from <code>txpool_status</code> and <code>txpool_content</code>.
+              Pending transactions competing for blockspace. Data comes from <code>txpool_status</code> and <code>txpool_content</code>.
             </p>
             <CaptureButton targetId="panel-mempool" />
           </div>
@@ -426,7 +411,7 @@ export default function Page() {
       )}
 
       {activePanel === "received" && (
-        <Panel id="panel-received" variant="alt" title="Builders/searchers (logistics optimizers)">
+        <Panel id="panel-received" variant="alt" title="Builders/searchers">
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className="text-white/70">
               Competing builder proposals for the same slot. This is where optimization and bidding pressure appears.
@@ -441,7 +426,7 @@ export default function Page() {
       )}
 
       {activePanel === "delivered" && (
-        <Panel id="panel-delivered" title="Relays (trusted handoff depots)">
+        <Panel id="panel-delivered" title="Relays">
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className="text-white/70">
               Relay delivery view of which payloads reached proposers with payment and transaction count context.
@@ -456,7 +441,7 @@ export default function Page() {
       )}
 
       {activePanel === "headers" && (
-        <Panel id="panel-headers" variant="alt" title="Validators/proposers (dispatch authority)">
+        <Panel id="panel-headers" variant="alt" title="Validators/proposers">
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className="text-white/70">
               Consensus-layer headers with builder-payment enrichment when available.
@@ -470,7 +455,7 @@ export default function Page() {
       )}
 
       {activePanel === "finality" && (
-        <Panel id="panel-finality" title="Finality (certified delivery lock)">
+        <Panel id="panel-finality" title="Finality">
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <p className="text-white/70">
               Finalized and justified checkpoints show when recent proposals become practically irreversible.

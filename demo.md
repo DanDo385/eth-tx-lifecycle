@@ -6,7 +6,7 @@ This guide is the fastest way to run a reliable live demo of the project and tel
 
 In one sentence:
 
-Show a smart beginner what happens after clicking **Send** on Ethereum using the post office analogy, while proving each step with live network data.
+Show what happens after clicking **Send** on Ethereum, from wallet broadcast to finality, using live network data as evidence.
 
 ## Audience Fit
 
@@ -14,22 +14,22 @@ Show a smart beginner what happens after clicking **Send** on Ethereum using the
 - **Technical audience:** keep the same story, then open relays/proposer/finality and architecture.
 - **Mixed audience:** run story first (2-3 minutes), technical follow-up second (2-3 minutes).
 
-## Core Narrative (Post Office Mapping)
+## Core Narrative
 
 Use this exact sequence in your voiceover:
 
-1. **Wallet send -> Drop letter in mailbox**  
+1. **Wallet send**  
    A user signs and broadcasts a transaction.
-2. **Mempool -> Local sorting room**  
-   Pending letters wait; stamp price pressure changes priority.
-3. **Builders/searchers -> Logistics optimizers**  
-   Teams build competing dispatch plans.
-4. **Relays -> Trusted handoff depots**  
-   Candidate bags are checked and forwarded.
-5. **Validators/proposers -> Dispatch authority**  
-   One route bag is selected and sent.
-6. **Finality -> Certified delivery lock**  
-   Records are confirmed and become hard to reverse.
+2. **Mempool**  
+   Pending transactions compete for blockspace under fee pressure.
+3. **Builders/searchers**  
+   Specialized actors build competing candidate blocks.
+4. **Relays**  
+   Builder payloads are handed to proposers.
+5. **Validators/proposers**  
+   One block is selected for the slot.
+6. **Finality**  
+   Checkpoints make history economically hard to reverse.
 
 ## Pre-Demo Checklist (5 Minutes)
 
@@ -57,18 +57,18 @@ Use this exact sequence in your voiceover:
 
 - **0:00-0:20**: Hook  
   "Most people click send and never see the pipeline. This walks through the route from wallet broadcast to finality."
-- **0:20-0:50**: Show Transaction Flow + analogy cards  
-  Point at analogy cards under the diagram.
+- **0:20-0:50**: Show Transaction Flow + synced explanation box  
+  Click through the diagram steps and point at the synced explanation box.
 - **0:50-1:20**: `2) Mempool`  
-  Explain variable stamp pricing (base fee + tip).
+  Explain gas pricing: base fee plus priority fee.
 - **1:20-1:50**: `3) Builders/searchers` then `4) Relays`  
   Explain competition + handoff.
 - **1:50-2:15**: `5) Validators/proposers` + `6) Finality`  
   Explain one selected block and confirmation lock.
 - **2:15-2:45**: `Track a transaction` using `latest`  
-  Show practical "where is my letter now?" use case.
+  Show practical transaction-status lookup.
 - **2:45-3:00**: Close  
-  "Story is beginner-friendly, but evidence is live."
+  "The walkthrough is readable, but the evidence is live."
 
 ## 6-Minute Version (Interview / Deep Dive)
 
@@ -82,11 +82,11 @@ Use this exact sequence in your voiceover:
 
 ## What to Say for Each Section
 
-- **Mempool:** "Letters are waiting in sorting bins; higher tips often move sooner."
-- **Builders/Searchers:** "Different logistics teams build competing route bags."
-- **Relays:** "Depots verify and forward candidate bags to dispatch authorities."
-- **Proposer:** "Only one bag leaves on the truck each slot."
-- **Finality:** "After checkpoint confirmation, delivery records are effectively locked."
+- **Mempool:** "Pending transactions compete for scarce blockspace."
+- **Builders/Searchers:** "Specialized actors assemble and bid candidate blocks."
+- **Relays:** "Relays hand builder payloads to proposers and expose bidtrace data."
+- **Proposer:** "One validator proposes a block for the slot."
+- **Finality:** "Checkpoints make accepted history economically hard to reverse."
 - **MEV Lab:** "This is advanced behavior analysis; useful for learning patterns, not courtroom-grade attribution."
 
 ## Demo Safety and Reliability Tips
@@ -98,7 +98,7 @@ Use this exact sequence in your voiceover:
 
 ## Backup Plan (If Live Data Is Degraded)
 
-1. Still show diagram + analogy cards.
+1. Still show diagram + synced explanation box.
 2. Use whichever lifecycle panel has data first (mempool, headers, or finality).
 3. Use transaction tracker with `latest`.
 4. Explain: "Public data sources are rate-limited; this app is designed to degrade gracefully."

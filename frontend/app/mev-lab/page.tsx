@@ -128,8 +128,8 @@ export default function MevLabPage() {
       <Panel title="What MEV means in plain language" id="mev-lab-primer">
         <div className="space-y-3 text-sm text-white/85">
           <p>
-            MEV is value captured by changing transaction order. In a post office analogy, it is like routing teams that can
-            rearrange outgoing mail bags to profit from who gets processed first.
+            MEV is value captured by changing transaction order, inclusion, or exclusion. In practice, specialized actors scan
+            pending flow and block construction opportunities for arbitrage, liquidation, sandwich, and related patterns.
           </p>
           <p className="rounded-lg border border-orange-400/20 bg-orange-500/10 p-3 text-orange-100">
             Educational warning: detection here uses heuristics. It is great for learning patterns but not suitable for legal
