@@ -99,8 +99,7 @@ If you are evaluating this project for solutions architecture, technical BD, or 
 
 5. **Sanity check (optional)**:
    ```bash
-   cd backend && go test ./... -count=1 && cd ..
-   cd frontend && npm run lint && npm run build && cd ..
+   make verify
    ```
 
 ### Stopping Services
@@ -108,6 +107,7 @@ If you are evaluating this project for solutions architecture, technical BD, or 
 ```bash
 make stop       # Stop both services and free ports
 make status     # Check if services are running
+make verify     # Run backend tests/vet/build + frontend lint/build
 ```
 
 ## How to Use
@@ -288,7 +288,7 @@ eth-tx-lifecycle/
 ├── scripts/
 │   ├── start-backend.sh               # Source root `.env.local`, build, run API
 │   └── start-frontend.sh              # Source root `.env.local`, `next dev`
-├── Makefile                           # start / stop / status
+├── Makefile                           # start / stop / status / verify
 ├── .env.example                       # Template env (copy to `.env.local`)
 ├── .env.local                         # Local secrets/overrides (not committed)
 ├── AGENTS.md                          # AI/agent instructions for this repo
@@ -361,6 +361,12 @@ The defaults are chosen for local demos. For evaluator-facing demos, use your ow
 
 ## Continuous integration
 
+Run the same checks locally before pushing:
+
+```bash
+make verify
+```
+
 GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to `main`/`master`:
 
 - **Go:** `go test ./...` (with a low coverage floor), `go vet ./...`
@@ -426,9 +432,8 @@ This is an educational project and contributions are welcome!
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Verify backend: `cd backend && go test ./... -count=1 && go vet ./... && go build ./cmd/eth-tx-lifecycle`
-5. Verify frontend: `cd frontend && npm run lint && npm run build`
-6. Submit a pull request
+4. Run `make verify`
+5. Submit a pull request
 
 ## License
 

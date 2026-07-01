@@ -26,6 +26,7 @@ pids
 
 # Coverage directory used by tools like istanbul
 coverage/
+backend/coverage.out
 
 # nyc test coverage
 .nyc_output

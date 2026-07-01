@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 
-.PHONY: start stop start-backend start-frontend stop-backend stop-frontend stop-ports status
+.PHONY: start stop start-backend start-frontend stop-backend stop-frontend stop-ports status verify
 
 PID_DIR := .pids
 BACKEND_PID := $(PID_DIR)/backend.pid
@@ -89,3 +89,15 @@ status:
 		echo "Backend: stopped."; \
 	fi
 	@echo "Frontend: check terminal output (runs in foreground)."
+
+verify:
+	@echo "==> Backend: test, vet, build"
+	@cd backend && go test ./... -count=1 -coverprofile=coverage.out -covermode=atomic
+	@cd backend && go tool cover -func=coverage.out | tail -n 1
+	@cd backend && go vet ./...
+	@cd backend && go build -o /dev/null ./cmd/eth-tx-lifecycle
+	@echo "==> Frontend: lint, build"
+	@cd frontend && npm ci
+	@cd frontend && npm run lint
+	@cd frontend && npm run build
+	@echo "verify: OK"
