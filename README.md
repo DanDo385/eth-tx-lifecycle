@@ -123,8 +123,6 @@ The default route is a guided core flow:
 5. **Validators/proposers** - one block is proposed per slot.
 6. **Finality** - justified/finalized checkpoints lock history.
 
-If you're presenting this live, use [`demo.md`](demo.md) for the full demo script, timing, fallback flow, and Q&A prompts.
-
 ### Step 2 (Core): Mempool
 Click **2) Mempool**. The backend polls the execution client’s **pending block** (`eth_getBlockByNumber` with tag `pending`) on an interval, then derives aggregate metrics. What you see is **RPC-dependent** (not a full public mempool feed).
 
@@ -380,8 +378,6 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to `main`/`master`:
 | 1:15–1:30 | **5) Finality checkpoints** — one line on justified vs finalized. |
 | 1:30–1:45 | **Track** — `latest` or a pre-tested hash. |
 | 1:45–2:30 | One architecture sentence (Go aggregates + envelope; Next explains); **skip 6) MEV** on a cold run unless pre-warmed. |
-
-For a fuller presenter-focused runbook (3-minute and 6-minute versions), see [`demo.md`](demo.md).
 
 ## Demo assets (optional)
 
