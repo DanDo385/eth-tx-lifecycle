@@ -28,7 +28,7 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value:
-              `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: blob: https:; connect-src ${connectSrc}; worker-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'`,
+              `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: blob: https:; connect-src ${connectSrc}; worker-src 'self' blob:; frame-ancestors 'self' https://magro.dev https://www.magro.dev; base-uri 'self'`,
           },
         ],
       },
