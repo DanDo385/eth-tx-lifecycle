@@ -63,7 +63,7 @@ export default function MermaidDiagram({
   onSelectPanel: (panel: LifecyclePanel) => void;
 }) {
   return (
-    <section className="rounded-xl border border-line/10 bg-surface/30 p-4 md:p-5" aria-label="Interactive transaction flow diagram">
+    <section className="rounded-xl border border-line/10 bg-panel p-4 md:p-5" aria-label="Interactive transaction flow diagram">
       <div className="mb-4 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-neon-blue">Transaction Flow</h2>
