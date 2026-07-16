@@ -82,10 +82,10 @@ export default function LifecycleStepExplainer({ activePanel }: { activePanel: L
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="max-w-3xl">
           <p className="text-xs uppercase tracking-wide text-cyan-200">{step.eyebrow}</p>
-          <h3 className="mt-1 text-xl font-semibold text-white">{step.title}</h3>
-          <p className="mt-2 text-sm leading-6 text-white/80">{step.summary}</p>
+          <h3 className="mt-1 text-xl font-semibold text-fg">{step.title}</h3>
+          <p className="mt-2 text-sm leading-6 text-fg/80">{step.summary}</p>
         </div>
-        <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-white/60">
+        <div className="rounded-full border border-line/10 bg-surface/30 px-3 py-1 text-xs text-fg/60">
           Synced to selected step
         </div>
       </div>

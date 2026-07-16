@@ -44,33 +44,33 @@ export default function BuilderRelayView({ data }: BuilderRelayViewProps) {
       {isFallbackDelivered && (
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-sm">
           <strong className="text-blue-400">Note:</strong>
-          <span className="text-white/80 ml-2">builder_blocks_received was empty from all relays. Showing proposer_payload_delivered (winning blocks delivered to validators) instead so you can see recent builder activity.</span>
+          <span className="text-fg/80 ml-2">builder_blocks_received was empty from all relays. Showing proposer_payload_delivered (winning blocks delivered to validators) instead so you can see recent builder activity.</span>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 rounded-lg p-4">
           <div className="text-purple-400 text-xs font-medium mb-1">Proposals</div>
-          <div className="text-white text-2xl font-bold">{formatNumber(totalProposals)}</div>
-          <div className="text-white/60 text-xs mt-1">from {uniqueBuilders.size} builders</div>
+          <div className="text-fg text-2xl font-bold">{formatNumber(totalProposals)}</div>
+          <div className="text-fg/60 text-xs mt-1">from {uniqueBuilders.size} builders</div>
         </div>
 
         <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-lg p-4">
           <div className="text-blue-400 text-xs font-medium mb-1">Avg Bid Value</div>
-          <div className="text-white text-2xl font-bold">{avgBid.toFixed(6)}</div>
-          <div className="text-white/60 text-xs mt-1">ETH per block</div>
+          <div className="text-fg text-2xl font-bold">{avgBid.toFixed(6)}</div>
+          <div className="text-fg/60 text-xs mt-1">ETH per block</div>
         </div>
 
         <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-lg p-4">
           <div className="text-green-400 text-xs font-medium mb-1">Highest Bid</div>
-          <div className="text-white text-2xl font-bold">{highestBid.toFixed(6)}</div>
-          <div className="text-white/60 text-xs mt-1">ETH</div>
+          <div className="text-fg text-2xl font-bold">{highestBid.toFixed(6)}</div>
+          <div className="text-fg/60 text-xs mt-1">ETH</div>
         </div>
 
         <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-500/20 rounded-lg p-4">
           <div className="text-orange-400 text-xs font-medium mb-1">Tx count</div>
-          <div className="text-white text-2xl font-bold">{formatNumber(totalTx)}</div>
-          <div className="text-white/60 text-xs mt-1">sum across proposals</div>
+          <div className="text-fg text-2xl font-bold">{formatNumber(totalTx)}</div>
+          <div className="text-fg/60 text-xs mt-1">sum across proposals</div>
         </div>
       </div>
 

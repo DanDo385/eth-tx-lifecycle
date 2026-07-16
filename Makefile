@@ -73,8 +73,10 @@ stop-frontend:
 	fi
 
 stop-ports:
-	@# Ensure no stray processes are holding the default ports
-	@for port in 3000 8080; do \
+	@# Free only this project's ports from config/ports.json (not eth-l2's 8080).
+	@REPO_ROOT="$$(pwd)"; \
+	. "$$REPO_ROOT/scripts/lib/ports.sh"; \
+	for port in "$$ETH_TX_FRONTEND_PORT" "$$ETH_TX_BACKEND_PORT"; do \
 		pids=$$(lsof -tiTCP:$$port -sTCP:LISTEN 2>/dev/null || true); \
 		if [ -n "$$pids" ]; then \
 			echo "Stopping processes on port $$port (pid(s) $$pids)..."; \

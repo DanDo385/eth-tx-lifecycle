@@ -43,15 +43,15 @@ export default function StandardStepTable<Row>({
       <div className={stepPanelTableBarClass}>{barText}</div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
-          <thead className="border-b border-white/10 bg-white/5">
+          <thead className="border-b border-line/10 bg-fill-subtle/5">
             <tr>
               {columns.map((col) => (
-                <th key={col.key} className={`p-3 font-medium text-white/80 ${alignClass(col.align)}`}>
+                <th key={col.key} className={`p-3 font-medium text-fg/80 ${alignClass(col.align)}`}>
                   {col.header}
                 </th>
               ))}
               {getRawHexData && (
-                <th className="p-3 text-right font-medium text-white/80">
+                <th className="p-3 text-right font-medium text-fg/80">
                   Raw Hex
                 </th>
               )}
@@ -59,16 +59,16 @@ export default function StandardStepTable<Row>({
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr className="border-b border-white/5">
-                <td className="p-3 text-white/60" colSpan={columns.length + (getRawHexData ? 1 : 0)}>
+              <tr className="border-b border-line/5">
+                <td className="p-3 text-fg/60" colSpan={columns.length + (getRawHexData ? 1 : 0)}>
                   {emptyText}
                 </td>
               </tr>
             ) : (
               rows.map((row, idx) => (
-                <tr key={getRowKey ? getRowKey(row, idx) : `row-${idx}`} className="border-b border-white/5 hover:bg-white/5">
+                <tr key={getRowKey ? getRowKey(row, idx) : `row-${idx}`} className="border-b border-line/5 hover:bg-fill-subtle/5">
                   {columns.map((col) => (
-                    <td key={col.key} className={`p-3 text-white/85 ${alignClass(col.align)}`}>
+                    <td key={col.key} className={`p-3 text-fg/85 ${alignClass(col.align)}`}>
                       {col.cell(row)}
                     </td>
                   ))}
@@ -87,7 +87,7 @@ export default function StandardStepTable<Row>({
           </tbody>
         </table>
       </div>
-      {footnote && <p className="px-3 py-2 text-center text-xs text-white/50">{footnote}</p>}
+      {footnote && <p className="px-3 py-2 text-center text-xs text-fg/50">{footnote}</p>}
     </div>
   );
 }

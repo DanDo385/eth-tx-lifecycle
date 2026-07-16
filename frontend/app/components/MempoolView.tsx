@@ -55,7 +55,7 @@ export default function MempoolView({ data }: MempoolViewProps) {
         barText={
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span>{table.barText}</span>
-            {lastUpdateLabel && <span className="text-white/50 sm:text-right">Snapshot: {lastUpdateLabel}</span>}
+            {lastUpdateLabel && <span className="text-fg/50 sm:text-right">Snapshot: {lastUpdateLabel}</span>}
           </div>
         }
         footnote={table.footnote}
@@ -63,7 +63,7 @@ export default function MempoolView({ data }: MempoolViewProps) {
         getRawHexData={table.getRawHexData}
       />
 
-      <p className="text-center text-xs text-white/50">
+      <p className="text-center text-xs text-fg/50">
         Total pending transactions in this snapshot: {formatNumber(total)}
       </p>
 

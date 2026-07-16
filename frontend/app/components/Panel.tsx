@@ -53,7 +53,7 @@ export default function Panel({
   const shell =
     variant === "alt"
       ? "rounded-2xl border border-purple-500/25 bg-gradient-to-br from-purple-950/25 to-panel/90 p-4 md:p-6 my-4"
-      : "rounded-2xl bg-panel/75 border border-white/10 p-4 md:p-6 my-4";
+      : "rounded-2xl bg-panel/75 border border-line/10 p-4 md:p-6 my-4";
 
   return (
     <section
@@ -67,7 +67,7 @@ export default function Panel({
       </h2>
 
       {/* Panel content area - responsive text sizing */}
-      <div className="text-sm md:text-base text-white/90">{children}</div>
+      <div className="text-sm md:text-base text-fg/90">{children}</div>
     </section>
   );
 }

@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 // this catch-all route proxies /api/* to the Go backend.
 // Otherwise, Next.js rewrites in next.config.mjs handle proxying with zero overhead.
 const PROXY_ENABLED = process.env.PROXY_MODE === 'route';
-const GOAPI_ORIGIN = process.env.GOAPI_ORIGIN || 'http://localhost:8080';
+// Default matches config/ports.json backend.url (8081; eth-l2 uses 8080).
+const GOAPI_ORIGIN = process.env.GOAPI_ORIGIN || 'http://127.0.0.1:8081';
 
 async function proxy(request: NextRequest, paramsPromise: Promise<{ path: string[] }>, method: string) {
   if (!PROXY_ENABLED) {

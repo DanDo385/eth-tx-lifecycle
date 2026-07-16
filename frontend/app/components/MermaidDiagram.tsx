@@ -63,13 +63,13 @@ export default function MermaidDiagram({
   onSelectPanel: (panel: LifecyclePanel) => void;
 }) {
   return (
-    <section className="rounded-xl border border-white/10 bg-black/30 p-4 md:p-5" aria-label="Interactive transaction flow diagram">
+    <section className="rounded-xl border border-line/10 bg-surface/30 p-4 md:p-5" aria-label="Interactive transaction flow diagram">
       <div className="mb-4 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-neon-blue">Transaction Flow</h2>
-          <p className="mt-1 text-sm text-white/60">Select a step to update the explanation and data panel below.</p>
+          <p className="mt-1 text-sm text-fg/60">Select a step to update the explanation and data panel below.</p>
         </div>
-        <div className="text-xs text-white/50">Wallet → Mempool → Builders → Relays → Proposal → Finality</div>
+        <div className="text-xs text-fg/50">Wallet → Mempool → Builders → Relays → Proposal → Finality</div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-6" role="list">
@@ -82,15 +82,15 @@ export default function MermaidDiagram({
               role="listitem"
               aria-pressed={isActive}
               onClick={() => onSelectPanel(step.id)}
-              className={`relative min-h-24 rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/10 ${
+              className={`relative min-h-24 rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-fill-subtle/10 ${
                 isActive ? `${step.activeColor} shadow-lg` : step.color
               }`}
             >
-              <div className="text-xs font-semibold uppercase tracking-wide text-white/50">Step {index + 1}</div>
-              <div className="mt-2 text-base font-semibold text-white">{step.label}</div>
-              <div className="mt-1 text-xs text-white/65">{step.detail}</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-fg/50">Step {index + 1}</div>
+              <div className="mt-2 text-base font-semibold text-fg">{step.label}</div>
+              <div className="mt-1 text-xs text-fg/65">{step.detail}</div>
               {index < steps.length - 1 && (
-                <div className="pointer-events-none absolute -right-2 top-1/2 hidden h-px w-4 bg-white/30 md:block" />
+                <div className="pointer-events-none absolute -right-2 top-1/2 hidden h-px w-4 bg-fill-subtle/30 md:block" />
               )}
             </button>
           );

@@ -13,10 +13,10 @@ type StepRawJsonDetailsProps = {
 export default function StepRawJsonDetails({ data, className = 'mt-4' }: StepRawJsonDetailsProps) {
   return (
     <details className={className}>
-      <summary className="cursor-pointer text-white/60 text-xs hover:text-white/80 select-none">
+      <summary className="cursor-pointer text-fg/60 text-xs hover:text-fg/80 select-none">
         Show raw JSON data
       </summary>
-      <pre className="mt-2 text-xs bg-black/60 p-3 rounded overflow-auto max-h-64 border border-white/10">
+      <pre className="mt-2 text-xs bg-surface/60 p-3 rounded overflow-auto max-h-64 border border-line/10">
         {JSON.stringify(data, null, 2)}
       </pre>
     </details>

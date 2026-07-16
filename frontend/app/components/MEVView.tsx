@@ -50,12 +50,12 @@ export default function MEVView({ data }: MEVViewProps) {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-orange-400 text-xs font-medium mb-1">Scanning Block</div>
-            <div className="text-white text-2xl font-bold">{blockNum > 0 ? formatNumber(blockNum) : data.block || 'Latest'}</div>
+            <div className="text-fg text-2xl font-bold">{blockNum > 0 ? formatNumber(blockNum) : data.block || 'Latest'}</div>
           </div>
           <div className="text-right">
-            <div className="text-white/60 text-xs">Transactions Scanned</div>
-            <div className="text-white text-lg font-bold">{scannedTxs} / {totalTxs}</div>
-            <div className="text-white/50 text-xs">{swapCount} swaps detected</div>
+            <div className="text-fg/60 text-xs">Transactions Scanned</div>
+            <div className="text-fg text-lg font-bold">{scannedTxs} / {totalTxs}</div>
+            <div className="text-fg/50 text-xs">{swapCount} swaps detected</div>
           </div>
         </div>
       </div>
@@ -63,19 +63,19 @@ export default function MEVView({ data }: MEVViewProps) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="border rounded-lg p-4 bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
           <div className="text-xs font-medium mb-1 text-red-400">Sandwiches</div>
-          <div className="text-white text-2xl font-bold">{sandwiches}</div>
+          <div className="text-fg text-2xl font-bold">{sandwiches}</div>
         </div>
         <div className="border rounded-lg p-4 bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
           <div className="text-xs font-medium mb-1 text-purple-400">Arbitrage</div>
-          <div className="text-white text-2xl font-bold">{arbitrages}</div>
+          <div className="text-fg text-2xl font-bold">{arbitrages}</div>
         </div>
         <div className="border rounded-lg p-4 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/20">
           <div className="text-xs font-medium mb-1 text-yellow-400">Liquidations</div>
-          <div className="text-white text-2xl font-bold">{liquidations}</div>
+          <div className="text-fg text-2xl font-bold">{liquidations}</div>
         </div>
         <div className="border rounded-lg p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
           <div className="text-xs font-medium mb-1 text-blue-400">JIT Liquidity</div>
-          <div className="text-white text-2xl font-bold">{jit}</div>
+          <div className="text-fg text-2xl font-bold">{jit}</div>
         </div>
       </div>
 
@@ -92,7 +92,7 @@ export default function MEVView({ data }: MEVViewProps) {
         <div className="border border-green-500/20 rounded-lg p-6 text-center">
           <div className="text-4xl mb-2">✅</div>
           <div className="text-green-400 font-medium mb-1">No MEV Activity Detected</div>
-          <div className="text-white/60 text-sm">
+          <div className="text-fg/60 text-sm">
             This block appears clean for the scanned sample.
           </div>
         </div>

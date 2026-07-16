@@ -50,7 +50,7 @@ export default function FinalityView({ data }: FinalityViewProps) {
             }`}>
               {isCritical ? 'Finality Issues Detected' : isHealthy ? 'Network Finalizing Normally' : 'Slow Finality'}
             </div>
-            <div className="text-white/70 text-sm mt-1">
+            <div className="text-fg/70 text-sm mt-1">
               {epochsSinceFinality} epoch{epochsSinceFinality !== 1 ? 's' : ''} between justified and finalized
               {isHealthy ? ' (normal)' : isCritical ? ' (critical)' : ' (delayed)'}
             </div>
@@ -61,20 +61,20 @@ export default function FinalityView({ data }: FinalityViewProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-lg p-4">
           <div className="text-green-400 text-xs font-medium mb-1">Finalized</div>
-          <div className="text-white text-2xl font-bold">{formatNumber(finalized)}</div>
-          <div className="text-white/60 text-xs mt-1">Slot {formatNumber(finalized * 32)}</div>
+          <div className="text-fg text-2xl font-bold">{formatNumber(finalized)}</div>
+          <div className="text-fg/60 text-xs mt-1">Slot {formatNumber(finalized * 32)}</div>
         </div>
 
         <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-lg p-4">
           <div className="text-blue-400 text-xs font-medium mb-1">Current Justified</div>
-          <div className="text-white text-2xl font-bold">{formatNumber(currentJustified)}</div>
-          <div className="text-white/60 text-xs mt-1">Slot {formatNumber(currentJustified * 32)}</div>
+          <div className="text-fg text-2xl font-bold">{formatNumber(currentJustified)}</div>
+          <div className="text-fg/60 text-xs mt-1">Slot {formatNumber(currentJustified * 32)}</div>
         </div>
 
         <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 rounded-lg p-4">
           <div className="text-purple-400 text-xs font-medium mb-1">Previous Justified</div>
-          <div className="text-white text-2xl font-bold">{formatNumber(previousJustified)}</div>
-          <div className="text-white/60 text-xs mt-1">Slot {formatNumber(previousJustified * 32)}</div>
+          <div className="text-fg text-2xl font-bold">{formatNumber(previousJustified)}</div>
+          <div className="text-fg/60 text-xs mt-1">Slot {formatNumber(previousJustified * 32)}</div>
         </div>
       </div>
 
@@ -87,22 +87,22 @@ export default function FinalityView({ data }: FinalityViewProps) {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="bg-black/40 border border-white/10 rounded-lg p-3">
-          <div className="text-white/60 text-xs mb-1">Time to Finality</div>
-          <div className="text-white text-lg font-bold">
+        <div className="bg-surface/40 border border-line/10 rounded-lg p-3">
+          <div className="text-fg/60 text-xs mb-1">Time to Finality</div>
+          <div className="text-fg text-lg font-bold">
             ~{(epochsSinceFinality * 6.4).toFixed(1)} minutes
           </div>
-          <div className="text-white/50 text-xs mt-1">
+          <div className="text-fg/50 text-xs mt-1">
             ({epochsSinceFinality} epochs × 6.4 min/epoch)
           </div>
         </div>
 
-        <div className="bg-black/40 border border-white/10 rounded-lg p-3">
-          <div className="text-white/60 text-xs mb-1">Blocks Since Finality</div>
-          <div className="text-white text-lg font-bold">
+        <div className="bg-surface/40 border border-line/10 rounded-lg p-3">
+          <div className="text-fg/60 text-xs mb-1">Blocks Since Finality</div>
+          <div className="text-fg text-lg font-bold">
             {formatNumber((currentJustified - finalized) * 32)}
           </div>
-          <div className="text-white/50 text-xs mt-1">
+          <div className="text-fg/50 text-xs mt-1">
             slots (32 slots/epoch × {epochsSinceFinality} epochs)
           </div>
         </div>

@@ -118,15 +118,15 @@ export default function MevLabPage() {
     <main className="max-w-6xl mx-auto px-4 pb-12 space-y-6">
       <section className="rounded-2xl border border-purple-500/25 bg-gradient-to-br from-purple-500/15 to-blue-500/10 p-6">
         <p className="text-xs uppercase tracking-wide text-purple-200">Advanced track</p>
-        <h2 className="mt-1 text-3xl font-bold text-white">MEV Lab</h2>
-        <p className="mt-2 text-sm text-white/80">
+        <h2 className="mt-1 text-3xl font-bold text-fg">MEV Lab</h2>
+        <p className="mt-2 text-sm text-fg/80">
           Explore real-world MEV patterns, how MEV-Boost and PBS changed block-building roles, and where extraction pressure
           still appears today.
         </p>
       </section>
 
       <Panel title="What MEV means in plain language" id="mev-lab-primer">
-        <div className="space-y-3 text-sm text-white/85">
+        <div className="space-y-3 text-sm text-fg/85">
           <p>
             MEV is value captured by changing transaction order, inclusion, or exclusion. In practice, specialized actors scan
             pending flow and block construction opportunities for arbitrage, liquidation, sandwich, and related patterns.
@@ -142,7 +142,7 @@ export default function MevLabPage() {
 
       <Panel id="mev-detector-live" variant="alt" title="Live MEV detector">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm text-white/75 md:max-w-2xl">
+          <p className="text-sm text-fg/75 md:max-w-2xl">
             Scan a block for sandwich, arbitrage, liquidation, and JIT-liquidity patterns. Use <code>latest</code> for a quick
             sample or enter an explicit block number/tag.
           </p>
@@ -152,7 +152,7 @@ export default function MevLabPage() {
               onChange={(event) => setBlockInput(event.target.value)}
               placeholder="latest or block number"
               aria-label="Block number or latest"
-              className="rounded border border-white/20 bg-black/40 px-3 py-2 text-sm"
+              className="rounded border border-line/20 bg-surface/40 px-3 py-2 text-sm"
             />
             <GlowButton
               ariaLabel="Analyze MEV block"
@@ -164,7 +164,7 @@ export default function MevLabPage() {
             </GlowButton>
           </div>
         </div>
-        {mev ? <MEVView data={mev} /> : <p className="mt-3 text-sm text-white/60">Loading baseline scan...</p>}
+        {mev ? <MEVView data={mev} /> : <p className="mt-3 text-sm text-fg/60">Loading baseline scan...</p>}
       </Panel>
 
       <EstimateMethodologyCard
@@ -174,7 +174,7 @@ export default function MevLabPage() {
       />
 
       <Panel id="mev-lab-method" title="How to read these comparisons">
-        <ul className="list-disc space-y-1 pl-5 text-sm text-white/80">
+        <ul className="list-disc space-y-1 pl-5 text-sm text-fg/80">
           <li>Observed signals come from current live endpoints (`/api/validators/head`, `/api/mev/sandwich`).</li>
           <li>Pre-PBS values shown here are explicit educational estimates with visible assumptions.</li>
           <li>Use this as an incentives explainer, not a precise historical accounting system.</li>

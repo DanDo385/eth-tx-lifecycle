@@ -22,15 +22,15 @@ export default function MetricCard({
 }: MetricCardProps) {
   return (
     <div
-      className={`bg-black/40 border border-white/10 rounded-lg p-4 ${className}`}
+      className={`bg-surface/40 border border-line/10 rounded-lg p-4 ${className}`}
       title={tooltip}
     >
-      <div className="text-sm text-white/60 mb-1 flex items-center gap-2">
+      <div className="text-sm text-fg/60 mb-1 flex items-center gap-2">
         {icon && <span>{icon}</span>}
         {label}
       </div>
       <div className="flex items-baseline gap-2">
-        <div className="text-2xl font-semibold text-white">{value}</div>
+        <div className="text-2xl font-semibold text-fg">{value}</div>
         {badge && (
           <span className={`text-xs font-medium ${badgeColor}`}>
             {badge}

@@ -5,7 +5,8 @@ const nextConfig = {
 
   // proxy frontend /api/* to your backend
   async rewrites() {
-    const goApiOrigin = process.env.GOAPI_ORIGIN || 'http://localhost:8080';
+    // Default matches config/ports.json backend.url (8081; eth-l2 uses 8080).
+    const goApiOrigin = process.env.GOAPI_ORIGIN || 'http://127.0.0.1:8081';
     console.log('Next.js rewrites: GOAPI_ORIGIN =', goApiOrigin);
     
     return [

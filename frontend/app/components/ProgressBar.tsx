@@ -26,12 +26,12 @@ export default function ProgressBar({
   return (
     <div className="w-full">
       {label && (
-        <div className="flex justify-between text-sm text-white/70 mb-1">
+        <div className="flex justify-between text-sm text-fg/70 mb-1">
           <span>{label}</span>
           {showPercentage && <span>{percent}%</span>}
         </div>
       )}
-      <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+      <div className="w-full bg-fill-subtle/10 rounded-full h-2 overflow-hidden">
         <div
           className={`h-full ${barColor} transition-all duration-300`}
           style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}

@@ -381,7 +381,7 @@ func handleHealthReadiness(w http.ResponseWriter, r *http.Request) {
 }
 
 // corsMiddleware sets CORS headers and handles OPTIONS. Single origin from env so
-// the frontend (e.g. localhost:3000) can call the backend (e.g. :8080).
+// the frontend (e.g. localhost:3000) can call the backend (e.g. :8081).
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := config.EnvOr("GOAPI_ORIGIN", "http://localhost:3000")
@@ -415,7 +415,7 @@ func Run() error {
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/health/live", handleHealthLiveness)
 	mux.HandleFunc("/api/health/ready", handleHealthReadiness)
-	addr := config.EnvOr("GOAPI_ADDR", ":"+config.EnvOr("PORT", "8080"))
+	addr := config.EnvOr("GOAPI_ADDR", ":"+config.EnvOr("PORT", "8081"))
 	log.Println("backend listening on", addr)
 	return http.ListenAndServe(addr, corsMiddleware(mux))
 }

@@ -41,28 +41,28 @@ export default function BeaconHeadersView({ data }: BeaconHeadersViewProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border border-indigo-500/20 rounded-lg p-4">
           <div className="text-indigo-400 text-xs font-medium mb-1">Proposed Blocks</div>
-          <div className="text-white text-2xl font-bold">{formatNumber(table.rows.length)}</div>
-          <div className="text-white/60 text-xs mt-1">
+          <div className="text-fg text-2xl font-bold">{formatNumber(table.rows.length)}</div>
+          <div className="text-fg/60 text-xs mt-1">
             {mevRows.length} MEV / {vanillaRows.length} vanilla
           </div>
         </div>
 
         <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-lg p-4">
           <div className="text-green-400 text-xs font-medium mb-1">Total Builder Payments</div>
-          <div className="text-white text-2xl font-bold">{weiToEth(totalMevPaymentsWei.toString())}</div>
-          <div className="text-white/60 text-xs mt-1">ETH to validators</div>
+          <div className="text-fg text-2xl font-bold">{weiToEth(totalMevPaymentsWei.toString())}</div>
+          <div className="text-fg/60 text-xs mt-1">ETH to validators</div>
         </div>
 
         <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-lg p-4">
           <div className="text-blue-400 text-xs font-medium mb-1">Avg MEV Payment</div>
-          <div className="text-white text-2xl font-bold">{avgMevPayment.toFixed(4)}</div>
-          <div className="text-white/60 text-xs mt-1">ETH per block</div>
+          <div className="text-fg text-2xl font-bold">{avgMevPayment.toFixed(4)}</div>
+          <div className="text-fg/60 text-xs mt-1">ETH per block</div>
         </div>
 
         <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-500/20 rounded-lg p-4">
           <div className="text-orange-400 text-xs font-medium mb-1">Avg Block Fullness</div>
-          <div className="text-white text-2xl font-bold">{avgBlockFullness.toFixed(1)}%</div>
-          <div className="text-white/60 text-xs mt-1">gas utilization</div>
+          <div className="text-fg text-2xl font-bold">{avgBlockFullness.toFixed(1)}%</div>
+          <div className="text-fg/60 text-xs mt-1">gas utilization</div>
         </div>
       </div>
 

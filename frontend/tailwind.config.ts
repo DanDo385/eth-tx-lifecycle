@@ -1,26 +1,32 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: "class",
-  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
+  darkMode: ["selector", '[data-theme="dark"]'],
+  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        bg: "#0b0f1a",
-        panel: "#0f1629",
+        bg: "rgb(var(--bg) / <alpha-value>)",
+        panel: "rgb(var(--panel) / <alpha-value>)",
+        fg: "rgb(var(--fg) / <alpha-value>)",
+        muted: "rgb(var(--muted) / <alpha-value>)",
+        surface: "rgb(var(--surface) / <alpha-value>)",
+        line: "rgb(var(--line) / <alpha-value>)",
+        "fill-subtle": "rgb(var(--fill-subtle) / <alpha-value>)",
+        overlay: "rgb(var(--overlay) / <alpha-value>)",
         neon: {
-          green: "#00ff9c",
-          blue: "#00d1ff",
-          yellow: "#ffe600"
-        }
+          green: "rgb(var(--neon-green) / <alpha-value>)",
+          blue: "rgb(var(--neon-blue) / <alpha-value>)",
+          yellow: "rgb(var(--neon-yellow) / <alpha-value>)",
+        },
       },
       boxShadow: {
-        neon: "0 0 20px rgba(0, 255, 156, 0.45)",
-        neonBlue: "0 0 24px rgba(0, 209, 255, 0.45)"
-      }
-    }
+        neon: "0 0 20px rgb(var(--neon-green) / 0.45)",
+        neonBlue: "0 0 24px rgb(var(--neon-blue) / 0.45)",
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 };
 
 export default config;

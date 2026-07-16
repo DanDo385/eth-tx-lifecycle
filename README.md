@@ -88,8 +88,16 @@ If you are evaluating this project for solutions architecture, technical BD, or 
    make start
 
    # Option B: Use scripts in separate terminals
-   ./scripts/start-backend.sh   # Terminal 1 (port 8080)
+   ./scripts/start-backend.sh   # Terminal 1 (port 8081; see config/ports.json)
    ./scripts/start-frontend.sh  # Terminal 2 (port 3000)
+   ```
+
+   For the Vercel + Cloudflare Tunnel split, keep the API up with:
+
+   ```bash
+   ./scripts/start-staging-backend.sh
+   # or durable across logins/crashes:
+   ./scripts/install-backend-launch-agent.sh
    ```
 
 4. **Open your browser**:
@@ -169,7 +177,7 @@ Enter a **tx hash** or **`latest`**, then **Track**. You get execution + receipt
                              | API Calls (/api/*)
                              v
 +-----------------------------------------------------------+
-|              Backend Server (localhost:8080)                |
+|              Backend Server (localhost:8081)                |
 |                                                            |
 |  - Parallel data fetching with goroutines                  |
 |  - Generic TTL cache (beacon, relay, snapshot)             |
@@ -336,8 +344,8 @@ cp .env.example .env.local
 | `GOAPI_ORIGIN` | Next rewrites **and** Go CORS (same name—see note below) | Usually **omit** locally so defaults apply |
 | `PROXY_MODE` | Optional route-based proxy mode (`route`) | unset |
 | `ENABLE_TEST_API_ROUTE` | Keep `/api/test` enabled in production | `false` |
-| `GOAPI_ADDR` | Backend listen address | `:8080` |
-| `PORT` | Fallback backend port (used when `GOAPI_ADDR` unset) | `8080` |
+| `GOAPI_ADDR` | Backend listen address | `127.0.0.1:8081` via `config/ports.json` |
+| `PORT` | Fallback backend port (used when `GOAPI_ADDR` unset) | `8081` |
 | `WEB_PORT` | Next dev server port (`scripts/start-frontend.sh`) | `3000` |
 | `RPC_HTTP_URL` | Primary execution-layer RPC endpoint | public endpoint fallback |
 | `RPC_HTTP_URL1..10` | Optional multi-provider RPC failover/racing | unset |
@@ -357,7 +365,9 @@ cp .env.example .env.local
 
 The defaults are chosen for local demos. For evaluator-facing demos, use your own RPC key(s) and keep relay lists explicit in `.env.local`.
 
-**`GOAPI_ORIGIN` in local dev:** `scripts/start-*.sh` source the same root `.env.local` for both processes. Next needs the **backend URL** for rewrites; Go needs the **browser origin** for CORS. If you set `GOAPI_ORIGIN=http://localhost:8080` for Next, the Go process may inherit it and emit the wrong `Access-Control-Allow-Origin` for a UI on port 3000. **Practical default:** omit `GOAPI_ORIGIN` from root `.env.local` so Next’s rewrite default (`http://localhost:8080`) and Go’s CORS default (`http://localhost:3000`) both apply; override only when your ports or hosts differ.
+**`GOAPI_ORIGIN` in local dev:** `scripts/start-*.sh` source the same root `.env.local` for both processes. Next needs the **backend URL** for rewrites; Go needs the **browser origin** for CORS. If you set `GOAPI_ORIGIN=http://127.0.0.1:8081` for Next, the Go process may inherit it and emit the wrong `Access-Control-Allow-Origin` for a UI on port 3000. **Practical default:** omit `GOAPI_ORIGIN` from root `.env.local` so `start-frontend.sh` sets the rewrite target from `config/ports.json` and Go’s CORS default (`http://localhost:3000`) still applies; override only when your ports or hosts differ.
+
+Canonical ports live in [`config/ports.json`](config/ports.json) (backend **8081** so this API can coexist with eth-l2 on **8080**).
 
 ## Continuous integration
 
@@ -406,22 +416,22 @@ Capture under `docs/assets/` for portfolio/README embeds: main flow + step butto
 
 **Port already in use**
 - Run `make stop` to stop all services and free ports.
-- Or manually: `lsof -ti:8080 | xargs kill` and `lsof -ti:3000 | xargs kill`
+- Or manually: `lsof -ti:8081 | xargs kill` and `lsof -ti:3000 | xargs kill`
 
 ### Checking Service Health
 
 ```bash
 # Detailed health status
-curl http://localhost:8080/api/health
+curl http://127.0.0.1:8081/api/health
 
 # Liveness probe
-curl http://localhost:8080/api/health/live
+curl http://127.0.0.1:8081/api/health/live
 
 # Readiness probe
-curl http://localhost:8080/api/health/ready
+curl http://127.0.0.1:8081/api/health/ready
 
 # Test mempool endpoint
-curl http://localhost:8080/api/mempool
+curl http://127.0.0.1:8081/api/mempool
 ```
 
 ## Contributing

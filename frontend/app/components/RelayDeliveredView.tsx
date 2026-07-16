@@ -35,26 +35,26 @@ export default function RelayDeliveredView({ data }: RelayDeliveredViewProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border border-cyan-500/20 rounded-lg p-4">
           <div className="text-cyan-400 text-xs font-medium mb-1">Blocks Delivered</div>
-          <div className="text-white text-2xl font-bold">{formatNumber(totalBlocks)}</div>
-          <div className="text-white/60 text-xs mt-1">to validators</div>
+          <div className="text-fg text-2xl font-bold">{formatNumber(totalBlocks)}</div>
+          <div className="text-fg/60 text-xs mt-1">to validators</div>
         </div>
 
         <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-lg p-4">
           <div className="text-green-400 text-xs font-medium mb-1">Total Validator Earnings</div>
-          <div className="text-white text-2xl font-bold">{totalEarnings.toFixed(3)}</div>
-          <div className="text-white/60 text-xs mt-1">ETH from builders</div>
+          <div className="text-fg text-2xl font-bold">{totalEarnings.toFixed(3)}</div>
+          <div className="text-fg/60 text-xs mt-1">ETH from builders</div>
         </div>
 
         <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-lg p-4">
           <div className="text-blue-400 text-xs font-medium mb-1">Avg Payment</div>
-          <div className="text-white text-2xl font-bold">{avgPayment.toFixed(4)}</div>
-          <div className="text-white/60 text-xs mt-1">ETH per block</div>
+          <div className="text-fg text-2xl font-bold">{avgPayment.toFixed(4)}</div>
+          <div className="text-fg/60 text-xs mt-1">ETH per block</div>
         </div>
 
         <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 rounded-lg p-4">
           <div className="text-purple-400 text-xs font-medium mb-1">Winning Builders</div>
-          <div className="text-white text-2xl font-bold">{uniqueBuilders.size}</div>
-          <div className="text-white/60 text-xs mt-1">unique winners</div>
+          <div className="text-fg text-2xl font-bold">{uniqueBuilders.size}</div>
+          <div className="text-fg/60 text-xs mt-1">unique winners</div>
         </div>
       </div>
 

@@ -1,0 +1,30 @@
+# Cloudflare Tunnel — eth-tx-lifecycle staging API (example only; do not commit secrets)
+#
+# Public hostname: https://api-staging-eth-tx.magro.dev
+# Origin:          http://127.0.0.1:8081  (see config/ports.json → backend)
+#
+# This machine may also host eth-l2 on :8080 via the same tunnel:
+#   api-staging-eth-l2.magro.dev → http://127.0.0.1:8080
+#   api-staging-eth-tx.magro.dev → http://127.0.0.1:8081
+#
+# One-time:
+#   cloudflared tunnel create <name>
+#   cloudflared tunnel route dns <name> api-staging-eth-tx.magro.dev
+#
+# Run (credentials live outside the repo, e.g. ~/.cloudflared/):
+#   cloudflared tunnel --config ~/.cloudflared/config.yml run
+#
+# Keep the Go API up:
+#   ./scripts/start-staging-backend.sh
+#   # or durable:
+#   ./scripts/install-backend-launch-agent.sh
+
+tunnel: <TUNNEL_UUID>
+credentials-file: /path/to/credentials.json
+
+ingress:
+  - hostname: api-staging-eth-l2.magro.dev
+    service: http://127.0.0.1:8080
+  - hostname: api-staging-eth-tx.magro.dev
+    service: http://127.0.0.1:8081
+  - service: http_status:404

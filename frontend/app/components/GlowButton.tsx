@@ -23,7 +23,7 @@ export default function GlowButton({
       aria-label={ariaLabel}
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-xl border border-cyan-400/30 bg-panel text-white transition-all outline-none focus:ring-2 focus:ring-neon-blue ${
+      className={`rounded-xl border border-cyan-400/30 bg-panel text-fg transition-all outline-none focus:ring-2 focus:ring-neon-blue ${
         compact
           ? "px-3 py-2 text-sm hover:shadow-neonBlue"
           : "px-4 py-3 text-sm md:text-base hover:shadow-neonBlue"

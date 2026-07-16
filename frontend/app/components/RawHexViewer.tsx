@@ -81,36 +81,36 @@ export default function RawHexViewerButton({
         onClick={() => setOpen(true)}
         className={
           className ??
-          'rounded border border-white/20 px-2 py-1 text-xs text-white/80 hover:border-cyan-400/50 hover:text-cyan-300'
+          'rounded border border-line/20 px-2 py-1 text-xs text-fg/80 hover:border-cyan-400/50 hover:text-cyan-300'
         }
       >
         {buttonLabel}
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/70 p-4 md:p-8" role="dialog" aria-modal="true">
-          <div className="mx-auto flex h-full max-w-4xl flex-col rounded-xl border border-white/15 bg-[#0b0b12]">
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <h4 className="text-sm font-semibold text-white">{title}</h4>
+        <div className="fixed inset-0 z-50 bg-overlay/70 p-4 md:p-8" role="dialog" aria-modal="true">
+          <div className="mx-auto flex h-full max-w-4xl flex-col rounded-xl border border-line/15 bg-panel">
+            <div className="flex items-center justify-between border-b border-line/10 px-4 py-3">
+              <h4 className="text-sm font-semibold text-fg">{title}</h4>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded border border-white/20 px-2 py-1 text-xs text-white/80 hover:text-white"
+                className="rounded border border-line/20 px-2 py-1 text-xs text-fg/80 hover:text-fg"
               >
                 Close
               </button>
             </div>
 
             <div className="grid flex-1 grid-cols-1 gap-4 overflow-hidden p-4 lg:grid-cols-2">
-              <div className="overflow-auto rounded-lg border border-white/10">
-                <div className="border-b border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+              <div className="overflow-auto rounded-lg border border-line/10">
+                <div className="border-b border-line/10 bg-fill-subtle/5 px-3 py-2 text-xs text-fg/70">
                   Extracted hex fields ({entries.length})
                 </div>
                 {entries.length === 0 ? (
-                  <div className="p-3 text-xs text-white/60">No hex fields were found for this row.</div>
+                  <div className="p-3 text-xs text-fg/60">No hex fields were found for this row.</div>
                 ) : (
                   <table className="w-full text-xs">
-                    <thead className="bg-white/5 text-white/60">
+                    <thead className="bg-fill-subtle/5 text-fg/60">
                       <tr>
                         <th className="px-3 py-2 text-left font-medium">Path</th>
                         <th className="px-3 py-2 text-left font-medium">Value</th>
@@ -118,8 +118,8 @@ export default function RawHexViewerButton({
                     </thead>
                     <tbody>
                       {entries.map((entry, idx) => (
-                        <tr key={`${entry.path}-${idx}`} className="border-t border-white/5">
-                          <td className="px-3 py-2 font-mono text-white/70">{entry.path}</td>
+                        <tr key={`${entry.path}-${idx}`} className="border-t border-line/5">
+                          <td className="px-3 py-2 font-mono text-fg/70">{entry.path}</td>
                           <td className="px-3 py-2 font-mono text-cyan-300 break-all">{entry.value}</td>
                         </tr>
                       ))}
@@ -128,9 +128,9 @@ export default function RawHexViewerButton({
                 )}
               </div>
 
-              <div className="overflow-auto rounded-lg border border-white/10 bg-black/40">
-                <div className="border-b border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">Full row payload</div>
-                <pre className="p-3 text-xs text-white/80">{safeStringify(data)}</pre>
+              <div className="overflow-auto rounded-lg border border-line/10 bg-surface/40">
+                <div className="border-b border-line/10 bg-fill-subtle/5 px-3 py-2 text-xs text-fg/70">Full row payload</div>
+                <pre className="p-3 text-xs text-fg/80">{safeStringify(data)}</pre>
               </div>
             </div>
           </div>

@@ -178,7 +178,7 @@ export default function Page() {
       setError({
         title: "Network error",
         message: err instanceof Error ? err.message : String(err),
-        hint: "Ensure the backend is reachable (default http://localhost:8080)",
+        hint: "Ensure the backend is reachable (default http://127.0.0.1:8081)",
       });
       return null;
     }
@@ -267,8 +267,8 @@ export default function Page() {
       <header className="my-6 space-y-4">
         <section className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 p-6">
           <p className="text-xs uppercase tracking-wide text-cyan-200">Ethereum transaction lifecycle</p>
-          <h2 className="mt-1 text-3xl font-bold text-white">What actually happens after Send?</h2>
-          <p className="mt-3 max-w-3xl text-sm text-white/80">
+          <h2 className="mt-1 text-3xl font-bold text-fg">What actually happens after Send?</h2>
+          <p className="mt-3 max-w-3xl text-sm text-fg/80">
             Follow a transaction from wallet broadcast through pending flow, builder/relay markets, proposer selection, and finality.
             The goal is a clean walkthrough backed by live network data, not another wall of protocol jargon.
           </p>
@@ -304,8 +304,8 @@ export default function Page() {
         )}
       </header>
 
-      <section className="my-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-        <h3 className="mb-3 text-lg font-semibold text-white">Lifecycle controls</h3>
+      <section className="my-6 rounded-2xl border border-line/10 bg-fill-subtle/5 p-4">
+        <h3 className="mb-3 text-lg font-semibold text-fg">Lifecycle controls</h3>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3" role="group" aria-label="Lifecycle controls">
           {lifecycleButtons.map((item) => (
             <GlowButton
@@ -315,11 +315,11 @@ export default function Page() {
               className={`text-left ${item.accentClass} ${activePanel === item.id ? "ring-2 ring-neon-blue" : ""}`}
             >
               <div className="font-semibold">{item.title}</div>
-              <div className="mt-1 text-xs text-white/70">{item.subtitle}</div>
+              <div className="mt-1 text-xs text-fg/70">{item.subtitle}</div>
             </GlowButton>
           ))}
         </div>
-        <p className="mt-3 text-xs text-white/60">
+        <p className="mt-3 text-xs text-fg/60">
           Want extraction details? Use the dedicated{" "}
           <Link href="/mev-lab" className="underline">
             MEV Lab
@@ -335,7 +335,7 @@ export default function Page() {
 
       {activePanel === "wallet" && (
         <Panel id="panel-wallet" title="Wallet send">
-          <div className="space-y-3 text-sm text-white/85">
+          <div className="space-y-3 text-sm text-fg/85">
             <p>
               A wallet signs your transaction locally, then broadcasts it to peers. It is now visible to the network, but it is not
               included in chain history until a block proposal contains it.
@@ -359,12 +359,12 @@ export default function Page() {
       {activePanel === "mempool" && (
         <Panel id="panel-mempool" title="Mempool">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <p className="text-white/70">
+            <p className="text-fg/70">
               Pending transactions competing for blockspace. Data comes from <code>txpool_status</code> and <code>txpool_content</code>.
             </p>
             <CaptureButton targetId="panel-mempool" />
           </div>
-          <div className="mt-2 text-xs text-white/60">
+          <div className="mt-2 text-xs text-fg/60">
             Feeds: WS {sources?.rpc_ws || "unset"}; HTTP {sources?.rpc_http || "unset"}
             {mempool?.source ? ` (source=${mempool.source})` : ""}
           </div>
@@ -373,22 +373,22 @@ export default function Page() {
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-lg border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-blue-600/5 p-4">
                 <div className="mb-1 text-xs font-medium text-blue-400">Total Transactions</div>
-                <div className="text-2xl font-bold text-white">{formatNumber(mempool?.count || 0)}</div>
+                <div className="text-2xl font-bold text-fg">{formatNumber(mempool?.count || 0)}</div>
               </div>
               <div className="rounded-lg border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-purple-600/5 p-4">
                 <div className="mb-1 text-xs font-medium text-purple-400">Gas Requested</div>
-                <div className="text-2xl font-bold text-white">{formatNumber(mempoolMetrics?.totalGasRequested || 0)}</div>
-                <div className="mt-1 text-xs text-white/60">gas units</div>
+                <div className="text-2xl font-bold text-fg">{formatNumber(mempoolMetrics?.totalGasRequested || 0)}</div>
+                <div className="mt-1 text-xs text-fg/60">gas units</div>
               </div>
               <div className="rounded-lg border border-green-500/20 bg-gradient-to-br from-green-500/10 to-green-600/5 p-4">
                 <div className="mb-1 text-xs font-medium text-green-400">Total Value</div>
-                <div className="text-2xl font-bold text-white">{weiToEth(mempoolMetrics?.totalValueWei || "0x0")}</div>
-                <div className="mt-1 text-xs text-white/60">ETH</div>
+                <div className="text-2xl font-bold text-fg">{weiToEth(mempoolMetrics?.totalValueWei || "0x0")}</div>
+                <div className="mt-1 text-xs text-fg/60">ETH</div>
               </div>
               <div className="rounded-lg border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-orange-600/5 p-4">
                 <div className="mb-1 text-xs font-medium text-orange-400">Avg Gas Price</div>
-                <div className="text-2xl font-bold text-white">{avgGasPrice.toFixed(2)}</div>
-                <div className="mt-1 text-xs text-white/60">gwei</div>
+                <div className="text-2xl font-bold text-fg">{avgGasPrice.toFixed(2)}</div>
+                <div className="mt-1 text-xs text-fg/60">gwei</div>
               </div>
             </div>
           )}
@@ -396,15 +396,15 @@ export default function Page() {
           {(mempoolMetrics?.highPriorityCount || 0) > 0 && (
             <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm">
               <span className="text-red-400">🔥</span>
-              <span className="text-white/90">
+              <span className="text-fg/90">
                 {mempoolMetrics?.highPriorityCount} high-priority tx{mempoolMetrics?.highPriorityCount !== 1 ? "s" : ""} (&gt;50 gwei)
               </span>
             </div>
           )}
 
           <StampPricingCard avgGasPriceGwei={avgGasPrice} className="mt-4" />
-          {mempool ? <MempoolView data={mempool} /> : <p className="mt-4 text-sm text-white/60">Loading mempool snapshot…</p>}
-          <p className="mt-2 text-sm text-white/60">
+          {mempool ? <MempoolView data={mempool} /> : <p className="mt-4 text-sm text-fg/60">Loading mempool snapshot…</p>}
+          <p className="mt-2 text-sm text-fg/60">
             Tip: live feeds use WebSocket <code>eth_subscribe("newPendingTransactions")</code>.
           </p>
         </Panel>
@@ -413,63 +413,63 @@ export default function Page() {
       {activePanel === "received" && (
         <Panel id="panel-received" variant="alt" title="Builders/searchers">
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <p className="text-white/70">
+            <p className="text-fg/70">
               Competing builder proposals for the same slot. This is where optimization and bidding pressure appears.
             </p>
             <CaptureButton targetId="panel-received" />
           </div>
-          <div className="mb-3 text-xs text-white/60">
+          <div className="mb-3 text-xs text-fg/60">
             Relays (configured): {Array.isArray(sources?.relays) ? sources.relays.join(", ") : "n/a"}
           </div>
-          {received ? <BuilderRelayView data={received} /> : <p className="text-white/60">Loading...</p>}
+          {received ? <BuilderRelayView data={received} /> : <p className="text-fg/60">Loading...</p>}
         </Panel>
       )}
 
       {activePanel === "delivered" && (
         <Panel id="panel-delivered" title="Relays">
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <p className="text-white/70">
+            <p className="text-fg/70">
               Relay delivery view of which payloads reached proposers with payment and transaction count context.
             </p>
             <CaptureButton targetId="panel-delivered" />
           </div>
-          <div className="mb-3 text-xs text-white/60">
+          <div className="mb-3 text-xs text-fg/60">
             Relays (configured): {Array.isArray(sources?.relays) ? sources.relays.join(", ") : "n/a"}
           </div>
-          {delivered ? <RelayDeliveredView data={delivered} /> : <p className="text-white/60">Loading...</p>}
+          {delivered ? <RelayDeliveredView data={delivered} /> : <p className="text-fg/60">Loading...</p>}
         </Panel>
       )}
 
       {activePanel === "headers" && (
         <Panel id="panel-headers" variant="alt" title="Validators/proposers">
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <p className="text-white/70">
+            <p className="text-fg/70">
               Consensus-layer headers with builder-payment enrichment when available.
             </p>
             <CaptureButton targetId="panel-headers" />
           </div>
-          <div className="mb-3 text-xs text-white/60">Beacon API: {sources?.beacon_api || "unset"}</div>
+          <div className="mb-3 text-xs text-fg/60">Beacon API: {sources?.beacon_api || "unset"}</div>
           <StampPricingCard avgGasPriceGwei={avgGasPrice} className="mb-3" />
-          {headers ? <BeaconHeadersView data={headers} /> : <p className="text-white/60">Loading...</p>}
+          {headers ? <BeaconHeadersView data={headers} /> : <p className="text-fg/60">Loading...</p>}
         </Panel>
       )}
 
       {activePanel === "finality" && (
         <Panel id="panel-finality" title="Finality">
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <p className="text-white/70">
+            <p className="text-fg/70">
               Finalized and justified checkpoints show when recent proposals become practically irreversible.
             </p>
             <CaptureButton targetId="panel-finality" />
           </div>
-          <div className="mb-3 text-xs text-white/60">Beacon API: {sources?.beacon_api || "unset"}</div>
-          {finality ? <FinalityView data={finality} /> : <p className="text-white/60">Loading...</p>}
+          <div className="mb-3 text-xs text-fg/60">Beacon API: {sources?.beacon_api || "unset"}</div>
+          {finality ? <FinalityView data={finality} /> : <p className="text-fg/60">Loading...</p>}
         </Panel>
       )}
 
       <Panel id="panel-tracker" title="Track a transaction">
-        <p className="text-white/70">
-          Enter a transaction hash (or type <strong className="text-white">latest</strong>) to stitch together its journey:
+        <p className="text-fg/70">
+          Enter a transaction hash (or type <strong className="text-fg">latest</strong>) to stitch together its journey:
           execution inclusion, relay context, and an approximate finality check.
         </p>
         <div className="mt-3 flex flex-col gap-2 md:flex-row">
@@ -478,7 +478,7 @@ export default function Page() {
             onChange={(event) => setTrackHash(event.target.value)}
             placeholder="0x... or latest"
             aria-label="Transaction hash or latest"
-            className="flex-1 rounded border border-white/10 bg-black/40 px-3 py-2 text-sm"
+            className="flex-1 rounded border border-line/10 bg-surface/40 px-3 py-2 text-sm"
           />
           <GlowButton
             ariaLabel="Track transaction"
@@ -513,13 +513,13 @@ export default function Page() {
           <CaptureButton targetId="panel-tracker" />
         </div>
         {!trackDetailsHidden && (
-          <div className="mt-3 max-h-96 overflow-auto rounded-lg border border-white/10 bg-black/40 p-3 text-xs">
+          <div className="mt-3 max-h-96 overflow-auto rounded-lg border border-line/10 bg-surface/40 p-3 text-xs">
             {trackLoading ? (
-              <p className="text-white/60">Loading transaction data...</p>
+              <p className="text-fg/60">Loading transaction data...</p>
             ) : tracked ? (
               <TransactionView data={tracked} />
             ) : (
-              <p className="text-white/60">Enter a hash (or &quot;latest&quot;) and click Track.</p>
+              <p className="text-fg/60">Enter a hash (or &quot;latest&quot;) and click Track.</p>
             )}
           </div>
         )}
@@ -534,14 +534,14 @@ export default function Page() {
           </div>
         ) : null}
         {trackDetailsHidden && tracked && (
-          <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-center">
-            <p className="text-sm text-white/60">Transaction details hidden. Click "Unhide" to view.</p>
+          <div className="mt-3 rounded-lg border border-line/10 bg-surface/20 p-3 text-center">
+            <p className="text-sm text-fg/60">Transaction details hidden. Click "Unhide" to view.</p>
           </div>
         )}
       </Panel>
 
       <Panel id="panel-wrap" variant="alt" title="Wrap-up: lifecycle map">
-        <ol className="list-decimal space-y-1 pl-5 text-white/80">
+        <ol className="list-decimal space-y-1 pl-5 text-fg/80">
           <li>
             <strong>Wallet send</strong>: user signs and broadcasts a transaction.
           </li>
@@ -561,7 +561,7 @@ export default function Page() {
             <strong>Finality</strong>: justified/finalized checkpoints lock history.
           </li>
         </ol>
-        <p className="mt-3 text-xs text-white/65">
+        <p className="mt-3 text-xs text-fg/65">
           For extraction economics and pre-vs-post PBS context, continue in{" "}
           <Link href="/mev-lab" className="underline">
             MEV Lab
@@ -570,14 +570,14 @@ export default function Page() {
         </p>
       </Panel>
 
-      <footer className="mt-12 border-t border-white/10 pt-6">
+      <footer className="mt-12 border-t border-line/10 pt-6">
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-6">
             <a
               href="https://twitter.com/DanQB13"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center gap-2 text-white/70 transition-colors hover:text-white"
+              className="group flex items-center gap-2 text-fg/70 transition-colors hover:text-fg"
               aria-label="Follow on X/Twitter"
             >
               <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -590,7 +590,7 @@ export default function Page() {
               href="https://github.com/DanDo385/eth-tx-lifecycle"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center gap-2 text-white/70 transition-colors hover:text-white"
+              className="group flex items-center gap-2 text-fg/70 transition-colors hover:text-fg"
               aria-label="View source on GitHub"
             >
               <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -604,7 +604,7 @@ export default function Page() {
             </a>
           </div>
 
-          <p className="text-xs text-white/50">Built with ❤️ for Ethereum education</p>
+          <p className="text-xs text-fg/50">Built with ❤️ for Ethereum education</p>
         </div>
       </footer>
     </main>

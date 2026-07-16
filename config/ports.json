@@ -1,0 +1,20 @@
+{
+  "project": "eth-tx-lifecycle",
+  "description": "Canonical ports for this repo. Scripts, Makefile, Cloudflare Tunnel ingress, and local Next rewrites should match these values. Backend uses 8081 so it can coexist with eth-l2 on 8080.",
+  "frontend": {
+    "host": "127.0.0.1",
+    "port": 3000,
+    "url": "http://127.0.0.1:3000"
+  },
+  "backend": {
+    "host": "127.0.0.1",
+    "port": 8081,
+    "url": "http://127.0.0.1:8081",
+    "bind": "127.0.0.1:8081"
+  },
+  "staging": {
+    "publicApiOrigin": "https://api-staging-eth-tx.magro.dev",
+    "vercelOrigin": "https://eth-tx-lifecycle.vercel.app",
+    "tunnelService": "http://127.0.0.1:8081"
+  }
+}
