@@ -21,7 +21,8 @@ export default function AgentPage() {
         <h1>Human pages for humans. Structured context for agents.</h1>
         <p>
           Agent Mode exposes canonical, low-noise context so AI systems do not have to infer meaning from
-          decorative HTML. This site publishes a human overview, a JSON manifest, and an LLM router.
+          decorative HTML. This site publishes a human overview, a JSON manifest with lifecycle steps and
+          public API paths, and an LLM router.
         </p>
         <div className="agent-actions">
           <a href="/agent.json" className="agent-action">
@@ -32,6 +33,9 @@ export default function AgentPage() {
           </a>
           <Link href="/" className="agent-action muted">
             Lifecycle Guide
+          </Link>
+          <Link href="/mev-lab" className="agent-action muted">
+            MEV Lab
           </Link>
         </div>
       </header>
@@ -49,16 +53,16 @@ export default function AgentPage() {
           <span className="agent-card-label">02</span>
           <h2>/agent.json</h2>
           <p>
-            Structured context: site metadata, navigation, topics, demos, and canonical links in one stable
-            JSON surface.
+            Structured context: site metadata, six lifecycle steps, demos, public API map, topics, and
+            canonical links in one stable JSON surface.
           </p>
         </article>
         <article className="agent-card">
           <span className="agent-card-label">03</span>
           <h2>/llms.txt</h2>
           <p>
-            A compact router for language models. It points agents at the important pages before they fall
-            into layout noise.
+            A compact router for language models. It points agents at the important pages, steps, and probes
+            before they fall into layout noise.
           </p>
         </article>
       </section>
@@ -69,8 +73,11 @@ export default function AgentPage() {
           <div>
             <h2>What this site wants agents to know</h2>
             <p>{SITE.description}</p>
+            <p className="mt-2 text-sm text-fg/80">
+              <strong>{manifest.about.emotionalHook}</strong> {manifest.about.technicalHook}
+            </p>
             <ul>
-              {manifest.canonicalTopics.slice(0, 6).map((topic) => (
+              {manifest.canonicalTopics.slice(0, 8).map((topic) => (
                 <li key={topic}>{topic}</li>
               ))}
             </ul>
@@ -84,6 +91,45 @@ export default function AgentPage() {
             </ul>
           </div>
         </div>
+      </section>
+
+      <section className="agent-section">
+        <div className="section-label">Lifecycle steps</div>
+        <ul className="agent-context" style={{ display: 'grid', gap: '0.75rem' }}>
+          {manifest.about.lifecycleSteps.map((step) => (
+            <li key={step.id} className="agent-card" style={{ listStyle: 'none' }}>
+              <span className="agent-card-label">
+                {step.order}. {step.label}
+              </span>
+              <h2 style={{ fontSize: '1rem' }}>{step.title}</h2>
+              <p>{step.summary}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="agent-section">
+        <div className="section-label">Public API (same-origin)</div>
+        <ul className="agent-context" style={{ display: 'grid', gap: '0.35rem' }}>
+          {manifest.api.endpoints.map((endpoint) => (
+            <li key={endpoint.path}>
+              <a href={endpoint.href} className="agent-action muted" style={{ marginRight: '0.5rem' }}>
+                {endpoint.method} {endpoint.path}
+              </a>
+              <span className="text-sm text-fg/80">{endpoint.purpose}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-sm text-fg/70">{manifest.about.degradedMode}</p>
+      </section>
+
+      <section className="agent-section">
+        <div className="section-label">Reading order</div>
+        <ol className="pl-5 text-sm text-fg/85" style={{ display: 'grid', gap: '0.35rem' }}>
+          {manifest.agentMode.readingOrder.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ol>
       </section>
 
       <section className="agent-section">

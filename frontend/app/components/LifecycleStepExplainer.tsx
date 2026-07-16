@@ -1,78 +1,9 @@
-export type LifecyclePanel = "wallet" | "mempool" | "received" | "delivered" | "headers" | "finality";
+import { getLifecycleStep, type LifecycleStepId } from '../../lib/lifecycleSteps';
 
-type StepExplanation = {
-  eyebrow: string;
-  title: string;
-  summary: string;
-  technicalNote: string;
-  liveData: string;
-};
-
-const stepExplanations: Record<LifecyclePanel, StepExplanation> = {
-  wallet: {
-    eyebrow: "Step 1 · Wallet send",
-    title: "Signing and broadcast",
-    summary:
-      "Your wallet creates a signed transaction and submits it to Ethereum peers. At this point the transaction is validly formed, but it is not included in a block yet.",
-    technicalNote:
-      "The private key signs the transaction locally. Nodes can reject malformed, underpriced, or nonce-conflicting transactions before they spread very far.",
-    liveData:
-      "Track any transaction hash to see whether it is still pending, included in a block, or missing from the configured execution node.",
-  },
-  mempool: {
-    eyebrow: "Step 2 · Mempool",
-    title: "Pending flow and fee pressure",
-    summary:
-      "Pending transactions sit in node-level mempools while validators, builders, and users compete for scarce blockspace. Higher fees can improve priority, but ordering is not first-come, first-served.",
-    technicalNote:
-      "There is no single global Ethereum mempool. Each node sees a slightly different pending set based on peers, timing, filters, and RPC provider behavior.",
-    liveData:
-      "The mempool panel shows pending transaction counts, gas requested, value, and gas-price distribution from the configured execution source.",
-  },
-  received: {
-    eyebrow: "Step 3 · Builders/searchers",
-    title: "Block construction market",
-    summary:
-      "Searchers and builders assemble candidate blocks. They optimize transaction ordering, bundle opportunities, and bid for the right to have a payload selected.",
-    technicalNote:
-      "Builder/searcher activity is economic infrastructure around the protocol. It can improve efficiency, but it also concentrates ordering power in specialized actors.",
-    liveData:
-      "The builders panel shows competing proposals, bids, and transaction totals for recent slots where relay data is available.",
-  },
-  delivered: {
-    eyebrow: "Step 4 · Relays",
-    title: "Payload handoff",
-    summary:
-      "Relays sit between builders and validators in proposer-builder separation. They forward eligible payloads and expose bidtrace data for delivered blocks.",
-    technicalNote:
-      "Relay coverage is uneven. Public relay APIs can be sparse or rate-limited, so missing rows do not always mean missing market activity.",
-    liveData:
-      "The relays panel shows delivered payloads, proposer fee recipients, builder pubkeys, payment values, gas use, and transaction counts where available.",
-  },
-  headers: {
-    eyebrow: "Step 5 · Validators/proposers",
-    title: "Block proposal",
-    summary:
-      "A selected validator proposes one block for the slot. Once the block is published, included transactions move from pending intent to chain history.",
-    technicalNote:
-      "The proposer can use a local payload or an external builder payload, subject to client policy, relay availability, and protocol constraints.",
-    liveData:
-      "The headers panel shows recent consensus-layer headers with builder-payment enrichment when matching relay data is available.",
-  },
-  finality: {
-    eyebrow: "Step 6 · Finality",
-    title: "Economic lock-in",
-    summary:
-      "Finality checkpoints show when the chain has enough validator agreement that rewriting history becomes economically unrealistic under normal assumptions.",
-    technicalNote:
-      "Finality is not the same as first inclusion. A transaction can appear in a block quickly, then become increasingly secure as justified and finalized checkpoints advance.",
-    liveData:
-      "The finality panel shows current justified and finalized checkpoints from Beacon REST providers, with fallback endpoints if the primary provider is slow.",
-  },
-};
+export type LifecyclePanel = LifecycleStepId;
 
 export default function LifecycleStepExplainer({ activePanel }: { activePanel: LifecyclePanel | null }) {
-  const step = stepExplanations[activePanel ?? "wallet"];
+  const step = getLifecycleStep(activePanel);
 
   return (
     <section

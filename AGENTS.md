@@ -84,18 +84,20 @@ First-class structured surfaces for AI systems. Keep them updated in the same ch
 
 - **`getLlmsTxt()`** is derived from **`getAgentManifest()`** — they cannot drift.
 - **Navigation labels/hrefs** for primary app links come from `frontend/lib/nav.ts` (shared with `SiteHeader`).
-- **Demos / projects / topics** currently curated in `frontend/lib/agent.ts` (this repo has no separate content loaders yet).
+- **Lifecycle step copy** comes from `frontend/lib/lifecycleSteps.ts` (shared with `LifecycleStepExplainer` and agent surfaces).
+- **Demos / API map / topics** are curated in `frontend/lib/agent.ts` (this repo has no separate content loaders yet).
 
 ### What you must update manually
 
-When the product changes, review **`frontend/lib/agent.ts`** (and related files):
+When the product changes, review **`frontend/lib/agent.ts`** and **`frontend/lib/lifecycleSteps.ts`** (and related files):
 
 1. **`lib/nav.ts`** — primary nav ids/labels/hrefs (UI + manifest stay aligned).
-2. **`about` / `contact` / `canonicalTopics` / `PRINCIPLES`** — when positioning or copy changes.
-3. **`agentMode.preferredEntryPoints`** — when new high-value agent entry URLs are added.
-4. **`demos` / `projects`** — when routes or health probes change.
-5. **`lib/constants.ts`** — `SITE` / `OWNER` / `CONTACT` flow into manifest and `llms.txt`.
-6. **`app/agent/page.tsx`** — human overview copy if endpoints or principles change.
+2. **`lib/lifecycleSteps.ts`** — step titles, summaries, technical notes, live-data notes when the guided story changes.
+3. **`about` / `contact` / `canonicalTopics` / `PRINCIPLES` / `api.endpoints`** — when positioning, copy, or public routes change.
+4. **`agentMode.preferredEntryPoints` / `readingOrder`** — when new high-value agent entry URLs are added.
+5. **`demos` / `projects`** — when routes, features, or health probes change.
+6. **`lib/constants.ts`** — `SITE` / `OWNER` / `CONTACT` flow into manifest and `llms.txt`.
+7. **`app/agent/page.tsx`** — human overview copy if endpoints or principles change.
 
 Never put secrets, LAN IPs, localhost-only hosts, or private staging details in agent surfaces. Public production URL and documented public health probes are fine.
 
