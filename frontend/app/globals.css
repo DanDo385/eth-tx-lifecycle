@@ -60,6 +60,7 @@ body {
     rgb(var(--bg));
   color: rgb(var(--fg));
   min-height: 100%;
+  overflow-x: clip;
 }
 
 :root.high-contrast * {
@@ -141,25 +142,39 @@ body {
   }
 }
 
-/* Agent page */
+/* Agent page — center in the viewport; never let long <pre> lines widen the document */
 .agent-page {
+  display: block;
+  box-sizing: border-box;
   width: 100%;
+  max-width: 72rem; /* match SiteHeader max-w-6xl */
+  margin-left: auto;
+  margin-right: auto;
   padding: 0.5rem 1rem 3.5rem;
+  overflow-x: clip;
 }
 
 .agent-shell {
-  max-width: 56rem;
-  margin: 0 auto;
   display: grid;
   gap: 1.5rem;
+  justify-items: stretch;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+  min-width: 0;
 }
 
 .agent-hero {
   text-align: center;
   display: grid;
   justify-items: center;
+  justify-content: center;
   gap: 0.85rem;
-  padding: 1.25rem 1rem 0.5rem;
+  padding: 1.25rem 0 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .agent-hero h1 {
@@ -227,6 +242,10 @@ body {
 .agent-grid {
   display: grid;
   gap: 0.85rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 @media (min-width: 768px) {
@@ -273,6 +292,10 @@ body {
   background: rgb(var(--panel) / 0.78);
   border-radius: 1rem;
   padding: 1.15rem 1.2rem 1.25rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .agent-section .section-label {
@@ -448,8 +471,12 @@ body {
 }
 
 .agent-code {
-  overflow: auto;
+  display: block;
+  overflow-x: auto;
+  overflow-y: auto;
   max-height: 32rem;
+  max-width: 100%;
+  min-width: 0;
   border-radius: 0.85rem;
   border: 1px solid rgb(var(--line) / 0.12);
   background: rgb(var(--surface) / 0.35);
@@ -460,6 +487,7 @@ body {
   margin: 0;
   white-space: pre;
   tab-size: 2;
+  box-sizing: border-box;
 }
 
 .agent-code code {
