@@ -478,7 +478,7 @@ export default function Page() {
             onChange={(event) => setTrackHash(event.target.value)}
             placeholder="0x... or latest"
             aria-label="Transaction hash or latest"
-            className="flex-1 rounded border border-line/10 bg-surface/40 px-3 py-2 text-sm"
+            className="flex-1 rounded border border-line/10 bg-soft px-3 py-2 text-sm text-fg"
           />
           <GlowButton
             ariaLabel="Track transaction"
@@ -513,7 +513,7 @@ export default function Page() {
           <CaptureButton targetId="panel-tracker" />
         </div>
         {!trackDetailsHidden && (
-          <div className="mt-3 max-h-96 overflow-auto rounded-lg border border-line/10 bg-surface/40 p-3 text-xs">
+          <div className="mt-3 max-h-96 overflow-auto rounded-lg border border-line/10 bg-soft p-3 text-xs">
             {trackLoading ? (
               <p className="text-fg/60">Loading transaction data...</p>
             ) : tracked ? (
@@ -534,7 +534,7 @@ export default function Page() {
           </div>
         ) : null}
         {trackDetailsHidden && tracked && (
-          <div className="mt-3 rounded-lg border border-line/10 bg-surface/20 p-3 text-center">
+          <div className="mt-3 rounded-lg border border-line/10 bg-soft p-3 text-center">
             <p className="text-sm text-fg/60">Transaction details hidden. Click "Unhide" to view.</p>
           </div>
         )}

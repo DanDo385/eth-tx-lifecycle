@@ -15,7 +15,7 @@ export default function PrePbsVsPbsDiagram() {
             <li>MEV extraction sophistication depends on proposer setup.</li>
             <li>Potentially uneven access to advanced orderflow strategies.</li>
           </ul>
-          <div className="mt-3 rounded border border-red-300/25 bg-surface/20 p-2 text-xs text-fg/85">
+          <div className="mt-3 rounded border border-red-300/25 bg-soft p-2 text-xs text-fg/85">
             Risk story: validators either miss value or over-optimize for extraction with uneven tooling.
           </div>
         </article>
@@ -28,7 +28,7 @@ export default function PrePbsVsPbsDiagram() {
             <li>Relays verify and forward candidate payloads.</li>
             <li>Proposers pick the best valid bid and publish the block.</li>
           </ul>
-          <div className="mt-3 rounded border border-green-300/25 bg-surface/20 p-2 text-xs text-fg/85">
+          <div className="mt-3 rounded border border-green-300/25 bg-soft p-2 text-xs text-fg/85">
             Outcome story: role separation increases specialization and exposes clearer builder-payment signals.
           </div>
         </article>

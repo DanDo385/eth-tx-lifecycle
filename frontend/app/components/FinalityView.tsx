@@ -87,7 +87,7 @@ export default function FinalityView({ data }: FinalityViewProps) {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="bg-surface/40 border border-line/10 rounded-lg p-3">
+        <div className="bg-soft border border-line/10 rounded-lg p-3">
           <div className="text-fg/60 text-xs mb-1">Time to Finality</div>
           <div className="text-fg text-lg font-bold">
             ~{(epochsSinceFinality * 6.4).toFixed(1)} minutes
@@ -97,7 +97,7 @@ export default function FinalityView({ data }: FinalityViewProps) {
           </div>
         </div>
 
-        <div className="bg-surface/40 border border-line/10 rounded-lg p-3">
+        <div className="bg-soft border border-line/10 rounded-lg p-3">
           <div className="text-fg/60 text-xs mb-1">Blocks Since Finality</div>
           <div className="text-fg text-lg font-bold">
             {formatNumber((currentJustified - finalized) * 32)}

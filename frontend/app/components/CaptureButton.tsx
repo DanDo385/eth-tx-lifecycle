@@ -71,7 +71,7 @@ export default function CaptureButton({ targetId }: { targetId: string }) {
       type="button"
       aria-label="Capture panel screenshot"  // Accessibility label for screen readers
       onClick={handleCapture}
-      className="px-3 py-1 rounded-lg border border-line/10 bg-surface/30 text-xs hover:border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue"
+      className="px-3 py-1 rounded-lg border border-line/10 bg-soft text-xs text-fg hover:border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue"
     >
       Capture
     </button>

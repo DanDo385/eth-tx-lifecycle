@@ -22,7 +22,7 @@ export default function MetricCard({
 }: MetricCardProps) {
   return (
     <div
-      className={`bg-surface/40 border border-line/10 rounded-lg p-4 ${className}`}
+      className={`bg-soft border border-line/10 rounded-lg p-4 ${className}`}
       title={tooltip}
     >
       <div className="text-sm text-fg/60 mb-1 flex items-center gap-2">

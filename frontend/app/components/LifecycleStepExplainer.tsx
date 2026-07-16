@@ -16,7 +16,7 @@ export default function LifecycleStepExplainer({ activePanel }: { activePanel: L
           <h3 className="mt-1 text-xl font-semibold text-fg">{step.title}</h3>
           <p className="mt-2 text-sm leading-6 text-fg/80">{step.summary}</p>
         </div>
-        <div className="rounded-full border border-line/10 bg-surface/30 px-3 py-1 text-xs text-fg/60">
+        <div className="rounded-full border border-line/10 bg-soft px-3 py-1 text-xs text-fg/60">
           Synced to selected step
         </div>
       </div>

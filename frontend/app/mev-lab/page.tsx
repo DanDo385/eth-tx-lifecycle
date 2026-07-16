@@ -152,7 +152,7 @@ export default function MevLabPage() {
               onChange={(event) => setBlockInput(event.target.value)}
               placeholder="latest or block number"
               aria-label="Block number or latest"
-              className="rounded border border-line/20 bg-surface/40 px-3 py-2 text-sm"
+              className="rounded border border-line/20 bg-soft px-3 py-2 text-sm text-fg"
             />
             <GlowButton
               ariaLabel="Analyze MEV block"

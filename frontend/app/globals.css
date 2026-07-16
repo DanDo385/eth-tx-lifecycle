@@ -26,6 +26,7 @@
   --nav-control-hover-bg: rgb(var(--fill-subtle) / 0.1);
   --nav-control-active-fg: rgb(var(--neon-blue));
   --nav-control-active-bg: rgb(var(--neon-blue) / 0.12);
+  --control-bg: rgb(var(--fill-subtle) / 0.06);
 }
 
 html[data-theme='light'] {
@@ -43,6 +44,7 @@ html[data-theme='light'] {
   --neon-blue: 2 132 199;
   --neon-green: 5 150 105;
   --neon-yellow: 202 138 4;
+  --control-bg: #f8fafc;
 
   --bg-gradient-a: rgba(2, 132, 199, 0.05);
   --bg-gradient-b: rgba(99, 102, 241, 0.04);
@@ -67,6 +69,11 @@ body {
 
 :root.high-contrast * {
   outline-color: rgb(var(--fg)) !important;
+}
+
+/* Soft control surfaces (inputs, capture, inset panels) — theme-aware */
+.bg-soft {
+  background-color: var(--control-bg);
 }
 
 .nav-control {
@@ -502,12 +509,7 @@ body {
 }
 
 html[data-theme='light'] .agent-code {
-  background: rgb(var(--surface) / 0.12);
-}
-
-html[data-theme='light'] input,
-html[data-theme='light'] textarea {
-  color: rgb(var(--fg));
+  background: #f8fafc;
 }
 
 /* Light greys need stronger border opacities than dark-ink /10–/12 */
@@ -545,21 +547,31 @@ html[data-theme='light'] .nav-agent-toggle:hover {
 html[data-theme='light'] .bg-surface\/20,
 html[data-theme='light'] .bg-surface\/25,
 html[data-theme='light'] .bg-surface\/30,
-html[data-theme='light'] .bg-surface\/40 {
-  background-color: rgb(250 252 255);
+html[data-theme='light'] .bg-surface\/40,
+html[data-theme='light'] .bg-soft {
+  background-color: #f8fafc !important;
 }
 html[data-theme='light'] .bg-surface\/60 {
-  background-color: rgb(241 245 249);
+  background-color: #f1f5f9 !important;
 }
 html[data-theme='light'] .bg-fill-subtle\/5,
 html[data-theme='light'] .bg-fill-subtle\/10 {
-  background-color: rgb(248 250 252);
+  background-color: #f8fafc !important;
 }
 html[data-theme='light'] .bg-fill-subtle\/30 {
-  background-color: rgb(226 232 240);
+  background-color: #e2e8f0 !important;
 }
 html[data-theme='light'] .bg-panel\/75 {
-  background-color: rgb(255 255 255 / 0.96);
+  background-color: rgb(255 255 255 / 0.96) !important;
+}
+html[data-theme='light'] input,
+html[data-theme='light'] textarea {
+  background-color: #f8fafc !important;
+  color: rgb(71 85 105);
+}
+html[data-theme='light'] input::placeholder,
+html[data-theme='light'] textarea::placeholder {
+  color: rgb(163 174 191);
 }
 
 /* Dark-first gradient panels (purple-950) read as muddy slabs in light mode */

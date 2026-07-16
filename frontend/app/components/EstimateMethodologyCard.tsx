@@ -24,17 +24,17 @@ export default function EstimateMethodologyCard({
       </p>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <div className="rounded-lg border border-line/15 bg-surface/25 p-3">
+        <div className="rounded-lg border border-line/15 bg-soft p-3">
           <div className="text-xs text-fg/60">Observed current MEV-tagged block share</div>
           <div className="mt-1 text-2xl font-bold text-fg">{mevTaggedSharePct.toFixed(1)}%</div>
           <div className="text-xs text-emerald-300">Confidence: High (directly from current headers)</div>
         </div>
-        <div className="rounded-lg border border-line/15 bg-surface/25 p-3">
+        <div className="rounded-lg border border-line/15 bg-soft p-3">
           <div className="text-xs text-fg/60">Observed avg builder payment (current)</div>
           <div className="mt-1 text-2xl font-bold text-fg">{avgBuilderPaymentEth.toFixed(4)} ETH</div>
           <div className="text-xs text-emerald-300">Confidence: High (live header enrichment)</div>
         </div>
-        <div className="rounded-lg border border-line/15 bg-surface/25 p-3">
+        <div className="rounded-lg border border-line/15 bg-soft p-3">
           <div className="text-xs text-fg/60">Observed MEV event rate (scan sample)</div>
           <div className="mt-1 text-2xl font-bold text-fg">{(mevEventsPerScannedTx * 100).toFixed(2)}%</div>
           <div className="text-xs text-yellow-300">Confidence: Medium (heuristic detector)</div>
@@ -58,7 +58,7 @@ export default function EstimateMethodologyCard({
         </div>
       </div>
 
-      <div className="mt-4 rounded border border-line/15 bg-surface/30 p-3 text-xs text-fg/65">
+      <div className="mt-4 rounded border border-line/15 bg-soft p-3 text-xs text-fg/65">
         Methodology notes: multipliers are configurable educational assumptions. Use this panel to reason about incentives, not
         to claim precise historical costs. For publication-quality claims, pair with peer-reviewed studies and archived datasets.
       </div>

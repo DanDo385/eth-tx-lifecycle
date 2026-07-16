@@ -128,7 +128,7 @@ export default function RawHexViewerButton({
                 )}
               </div>
 
-              <div className="overflow-auto rounded-lg border border-line/10 bg-surface/40">
+              <div className="overflow-auto rounded-lg border border-line/10 bg-soft">
                 <div className="border-b border-line/10 bg-fill-subtle/5 px-3 py-2 text-xs text-fg/70">Full row payload</div>
                 <pre className="p-3 text-xs text-fg/80">{safeStringify(data)}</pre>
               </div>
