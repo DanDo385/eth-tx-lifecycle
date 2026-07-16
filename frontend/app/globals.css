@@ -34,8 +34,8 @@ html[data-theme='light'] {
 
   --bg: 250 252 255;
   --panel: 255 255 255;
-  --fg: 71 85 105;
-  --muted: 163 174 191;
+  --fg: 30 41 59;
+  --muted: 100 116 139;
   /* Pale greys only — dark-mode glass opacities must not become mid-grey slabs */
   --surface: 248 250 252;
   --line: 226 232 240;
@@ -661,27 +661,27 @@ html[data-theme='light'] .text-gray-300,
 html[data-theme='light'] .text-gray-400,
 html[data-theme='light'] .text-slate-300,
 html[data-theme='light'] .text-slate-400 {
-  color: rgb(163 174 191);
+  color: rgb(100 116 139); /* slate-500 */
 }
 
-/* Secondary copy stays soft/light in light mode */
+/* Secondary copy: readable slate, not washed-out pale grey */
 html[data-theme='light'] .text-fg\/50 {
-  color: rgb(148 163 184);
+  color: rgb(100 116 139); /* slate-500 */
 }
 html[data-theme='light'] .text-fg\/60 {
-  color: rgb(148 163 184);
+  color: rgb(71 85 105); /* slate-600 */
 }
 html[data-theme='light'] .text-fg\/65 {
-  color: rgb(125 140 160);
+  color: rgb(71 85 105);
 }
 html[data-theme='light'] .text-fg\/70 {
-  color: rgb(125 140 160);
+  color: rgb(51 65 85); /* slate-700 */
 }
 html[data-theme='light'] .text-fg\/80 {
-  color: rgb(100 116 139);
+  color: rgb(51 65 85);
 }
 html[data-theme='light'] .text-fg\/85,
 html[data-theme='light'] .text-fg\/90 {
-  color: rgb(71 85 105);
+  color: rgb(30 41 59); /* slate-800 */
 }
 

@@ -67,9 +67,9 @@ export default function MermaidDiagram({
       <div className="mb-4 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-neon-blue">Transaction Flow</h2>
-          <p className="mt-1 text-sm text-fg/60">Select a step to update the explanation and data panel below.</p>
+          <p className="mt-1 text-sm text-fg/70">Select a step to update the explanation and data panel below.</p>
         </div>
-        <div className="text-xs text-fg/50">Wallet → Mempool → Builders → Relays → Proposal → Finality</div>
+        <div className="text-xs text-fg/60">Wallet → Mempool → Builders → Relays → Proposal → Finality</div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-6" role="list">
@@ -86,9 +86,9 @@ export default function MermaidDiagram({
                 isActive ? `${step.activeColor} shadow-lg` : step.color
               }`}
             >
-              <div className="text-xs font-semibold uppercase tracking-wide text-fg/50">Step {index + 1}</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-fg/60">Step {index + 1}</div>
               <div className="mt-2 text-base font-semibold text-fg">{step.label}</div>
-              <div className="mt-1 text-xs text-fg/65">{step.detail}</div>
+              <div className="mt-1 text-xs text-fg/70">{step.detail}</div>
               {index < steps.length - 1 && (
                 <div className="pointer-events-none absolute -right-2 top-1/2 hidden h-px w-4 bg-fill-subtle/30 md:block" />
               )}

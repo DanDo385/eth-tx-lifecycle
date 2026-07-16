@@ -319,7 +319,7 @@ export default function Page() {
             </GlowButton>
           ))}
         </div>
-        <p className="mt-3 text-xs text-fg/60">
+        <p className="mt-3 text-xs text-fg/70">
           Want extraction details? Use the dedicated{" "}
           <Link href="/mev-lab" className="underline">
             MEV Lab
