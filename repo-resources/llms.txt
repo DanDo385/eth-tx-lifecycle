@@ -1,0 +1,36 @@
+# eth-tx-lifecycle — Ethereum Transaction Lifecycle Visualizer
+
+Portfolio write-up: https://magro.dev/projects/eth-tx-lifecycle/
+Live UI (separate Vercel app): https://eth-tx-lifecycle.vercel.app
+Source: https://github.com/DanDo385/eth-tx-lifecycle
+Backend (public tunnel): https://api-staging-eth-tx.magro.dev
+
+## What it is
+
+Full-stack visualization of what happens between clicking send and a transaction becoming irreversible: execution and consensus layers, mempool, MEV, builder auctions, relays, proposal, and finality.
+
+The interactive UI is hosted on its own Vercel project. Mempool, relay, and tracker data come from a staging Go backend through Cloudflare Tunnel. If the tunnel is offline, the Vercel UI can still load in degraded mode and the portfolio write-up remains useful.
+
+## Surfaces on magro.dev
+
+- Project card and media: `/projects/eth-tx-lifecycle/`
+- This agent brief: `/project-assets/eth-tx-lifecycle/llms.txt`
+- Backend health probe: `/api/demos/eth-tx/health`
+- Site router: `/llms.txt`
+- Structured manifest: `/agent.json`
+
+## Interact
+
+Open the live UI on the Vercel hostname (not an iframe on magro.dev):
+
+- App root: https://eth-tx-lifecycle.vercel.app
+
+## Stack
+
+Go, Next.js, TypeScript, JSON-RPC, Beacon API, MEV detection, Cloudflare Tunnel to staging Go backend.
+
+## Notes for agents
+
+- Prefer this file and `/projects/eth-tx-lifecycle/` for portfolio context; use eth-tx-lifecycle.vercel.app for live interaction.
+- Do not invent LAN IPs or private staging hosts. Only the public `api-staging-eth-tx.magro.dev` hostname is intentional.
+- magro.dev does not proxy the live UI; Interact links out.
