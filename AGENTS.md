@@ -58,6 +58,18 @@ The goal is not to flex jargon. The goal is to make Ethereum's transaction pipel
 - Toggle UI: `frontend/app/components/ThemeToggle.tsx` under the Display control in `SiteHeader`.
 - Do not introduce `next-themes` or a ThemeProvider context.
 
+### Contrast rule (required whenever light/dark is present)
+
+**Adding a theme toggle is not done until both modes have readable colors.** Dark-first pastel Tailwind utilities (`text-*-50` through `text-*-400`, especially green/amber/emerald/yellow) often look fine on dark backgrounds and fail WCAG-ish contrast on light ones.
+
+Rules:
+
+1. **Body / paragraph copy** must use semantic tokens (`text-fg`, `text-fg/80`, `text-fg/85`, `text-muted`) that follow `--fg` / `--muted`, not near-white pastel shades.
+2. **Accent labels** may keep `text-green-300`, `text-amber-200`, etc. for dark mode, but must be covered by `html[data-theme='light']` overrides in `globals.css` (darker 700-ish hues) or use dual-aware classes.
+3. **Status chips** (e.g. API Server Ready with `text-green-300`) need light-mode overrides; never rely on pale green on pale green tint alone.
+4. When adding new accent text colors, extend the light-mode override block in `globals.css` in the same PR, and spot-check both themes (toggle Display, read labels + body on tinted cards).
+5. Prefer fixing with tokens + CSS overrides over `next-themes` or hard-coded dual class trees unless a component is purely decorative.
+
 ## Agent Mode
 
 First-class structured surfaces for AI systems. Keep them updated in the same change as site content/nav.

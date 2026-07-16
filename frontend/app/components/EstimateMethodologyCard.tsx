@@ -43,16 +43,16 @@ export default function EstimateMethodologyCard({
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <div className="rounded-lg border border-red-400/30 bg-red-500/10 p-3">
-          <div className="text-xs text-red-200">Assumption-based estimate: pre-PBS extraction pressure proxy</div>
+          <div className="text-xs font-medium text-red-200">Assumption-based estimate: pre-PBS extraction pressure proxy</div>
           <div className="mt-1 text-xl font-semibold text-fg">{(estimatedPrePbsMevEventRate * 100).toFixed(2)}%</div>
-          <p className="mt-1 text-xs text-red-100">
+          <p className="mt-1 text-xs text-fg/80">
             Uses multiplier {PRE_PBS_EXTRACTION_MULTIPLIER}x applied to current heuristic event rate.
           </p>
         </div>
         <div className="rounded-lg border border-red-400/30 bg-red-500/10 p-3">
-          <div className="text-xs text-red-200">Assumption-based estimate: pre-PBS value concentration proxy</div>
+          <div className="text-xs font-medium text-red-200">Assumption-based estimate: pre-PBS value concentration proxy</div>
           <div className="mt-1 text-xl font-semibold text-fg">{estimatedPrePbsBuilderEquivalent.toFixed(4)} ETH</div>
-          <p className="mt-1 text-xs text-red-100">
+          <p className="mt-1 text-xs text-fg/80">
             Uses multiplier {PRE_PBS_COST_MULTIPLIER}x applied to current average builder payment signal.
           </p>
         </div>

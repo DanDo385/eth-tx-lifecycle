@@ -93,11 +93,12 @@ export default function LifecycleStepExplainer({ activePanel }: { activePanel: L
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-amber-200">Technical note</div>
-          <p className="mt-1 text-sm leading-6 text-amber-50/90">{step.technicalNote}</p>
+          {/* Body uses theme fg tokens so light mode stays readable (not near-white amber-50). */}
+          <p className="mt-1 text-sm leading-6 text-fg/85">{step.technicalNote}</p>
         </div>
         <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-emerald-200">Live data</div>
-          <p className="mt-1 text-sm leading-6 text-emerald-50/90">{step.liveData}</p>
+          <p className="mt-1 text-sm leading-6 text-fg/85">{step.liveData}</p>
         </div>
       </div>
     </section>

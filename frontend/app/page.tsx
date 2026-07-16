@@ -340,9 +340,9 @@ export default function Page() {
               A wallet signs your transaction locally, then broadcasts it to peers. It is now visible to the network, but it is not
               included in chain history until a block proposal contains it.
             </p>
-            <p className="rounded border border-amber-400/20 bg-amber-500/10 p-3 text-amber-100">
-              Technical note: the network does not guarantee first-come-first-served ordering. Fee pressure and builder strategy
-              strongly influence what gets included next.
+            <p className="rounded border border-amber-400/20 bg-amber-500/10 p-3 text-fg/85">
+              <span className="font-semibold text-amber-200">Technical note:</span> the network does not guarantee
+              first-come-first-served ordering. Fee pressure and builder strategy strongly influence what gets included next.
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <Link
