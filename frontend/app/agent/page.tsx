@@ -12,7 +12,6 @@ export const metadata: Metadata = {
 
 export default function AgentPage() {
   const manifest = getAgentManifest();
-  const prettyManifest = JSON.stringify(manifest, null, 2);
 
   return (
     <main className="agent-page">
@@ -139,17 +138,26 @@ export default function AgentPage() {
         </section>
 
         <section className="agent-section">
-          <div className="section-label">Manifest preview</div>
+          <div className="section-label">Manifest</div>
           <p className="agent-section-intro">
-            Machines should fetch{' '}
+            For the full structured payload, fetch{' '}
             <a href="/agent.json" className="underline">
               /agent.json
+            </a>
+            . Use{' '}
+            <a href="/llms.txt" className="underline">
+              /llms.txt
             </a>{' '}
-            directly. This is a human-readable preview of the same payload.
+            as a compact router before scraping decorative HTML.
           </p>
-          <pre className="agent-code">
-            <code>{prettyManifest}</code>
-          </pre>
+          <div className="agent-actions agent-actions-start">
+            <a href="/agent.json" className="agent-action">
+              Open agent.json
+            </a>
+            <a href="/llms.txt" className="agent-action muted">
+              Open llms.txt
+            </a>
+          </div>
         </section>
       </div>
     </main>
